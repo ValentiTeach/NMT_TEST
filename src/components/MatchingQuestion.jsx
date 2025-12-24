@@ -1,7 +1,7 @@
 // components/MatchingQuestion.jsx
 import React from 'react';
 import { X } from 'lucide-react';
-import { letters } from '../data/tests';
+import { letters } from '../data/constants';
 
 export default function MatchingQuestion({ question, answers, onAnswer, isChecked }) {
   const handleClick = (row, col) => {
