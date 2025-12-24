@@ -3,6 +3,16 @@ import React from 'react';
 import { Award, TrendingUp, Target, Zap } from 'lucide-react';
 
 export default function Profile({ user, tests, progress, theme }) {
+  // Перевірка чи user існує
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto animate-fadeIn text-center mt-20">
+        <div className="text-6xl mb-4">⏳</div>
+        <p className={`${theme.text} text-2xl`}>Завантаження профілю...</p>
+      </div>
+    );
+  }
+
   // Загальна статистика
   const totalQuestions = tests.reduce((sum, test) => sum + test.questions.length, 0);
   const completedQuestions = Object.values(progress).reduce((sum, p) => sum + p.completed, 0);
