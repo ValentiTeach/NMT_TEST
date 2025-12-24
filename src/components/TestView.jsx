@@ -1,19 +1,22 @@
 // components/TestView.jsx
 import React from 'react';
-import { Layout, HelpCircle, ArrowRight } from 'lucide-react';
+import { Layout, HelpCircle, ArrowRight, Home } from 'lucide-react';
 import SingleQuestion from './SingleQuestion';
 import MatchingQuestion from './MatchingQuestion';
-import { tests } from '../data/tests';
 
 export default function TestView({ 
+  currentTest,
   currentQuestion, 
   setCurrentQuestion, 
   answers, 
   setAnswers, 
   checkedQuestions, 
   setCheckedQuestions,
+  onUpdateProgress,
+  onBackToTests,
   theme 
 }) {
+  const tests = currentTest.questions;
   const q = tests[currentQuestion];
   const isChecked = checkedQuestions[currentQuestion];
 
@@ -23,6 +26,23 @@ export default function TestView({
 
   const handleCheck = () => {
     setCheckedQuestions({ ...checkedQuestions, [currentQuestion]: true });
+    
+    // Перевірка правильності та оновлення прогресу
+    const userAnswer = answers[currentQuestion];
+    let isCorrect = false;
+    
+    if (q.type === 'single') {
+      isCorrect = userAnswer?.[0] === q.correct;
+    } else if (q.type === 'matching' || q.type === 'sequence') {
+      const correctAnswers = q.correctMatching || q.correctSequence;
+      isCorrect = Object.keys(correctAnswers).every(
+        key => userAnswer?.[key] === correctAnswers[key]
+      );
+    }
+    
+    if (isCorrect) {
+      onUpdateProgress(currentTest.id, currentQuestion);
+    }
   };
 
   const handleNext = () => {
@@ -31,6 +51,23 @@ export default function TestView({
 
   return (
     <div className="animate-fadeIn">
+      {/* Заголовок з кнопкою назад */}
+      <div className="flex items-center gap-4 mb-8">
+        <button
+          onClick={onBackToTests}
+          className={`${theme.card} px-6 py-3 rounded-xl border-2 font-bold hover:scale-105 transition-all flex items-center gap-2`}
+        >
+          <Home size={20} /> Назад
+        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl">{currentTest.icon}</span>
+          <div>
+            <h2 className="text-2xl font-black">{currentTest.title}</h2>
+            <p className={`${theme.subtext} text-sm`}>{currentTest.description}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Панель питань */}
       <div className="flex gap-2 mb-10 overflow-x-auto pb-4 scrollbar-hide">
         {tests.map((_, i) => (
