@@ -40,7 +40,7 @@ export default function MatchingQuestion({ question, answers, onAnswer, isChecke
 
       {/* Сітка вибору */}
       <div className="inline-block">
-        <div className="flex ml-12 mb-4">
+        <div className="flex gap-3 ml-[52px] mb-4">
           {letters.map(l => (
             <div key={l} className="w-16 text-center font-black text-2xl opacity-50">
               {l}
@@ -49,7 +49,7 @@ export default function MatchingQuestion({ question, answers, onAnswer, isChecke
         </div>
         {question.left.map((_, row) => (
           <div key={row} className="flex items-center gap-3 mb-3">
-            <div className="w-10 font-black text-2xl text-teal-600">{row + 1}</div>
+            <div className="w-10 font-black text-2xl text-teal-600 text-center">{row + 1}</div>
             {letters.map((_, col) => {
               const sel = answers?.[row] === col;
               const corr = question.correctMatching?.[row] === col || question.correctSequence?.[row] === col;
