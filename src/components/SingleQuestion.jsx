@@ -1,6 +1,6 @@
 // components/SingleQuestion.jsx
 import React from 'react';
-import { letters } from '../data/tests';
+import { letters } from '../data/constants';
 
 export default function SingleQuestion({ question, answers, onAnswer, isChecked }) {
   return (
