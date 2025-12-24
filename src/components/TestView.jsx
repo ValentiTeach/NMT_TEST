@@ -3,8 +3,7 @@ import React from 'react';
 import { Layout, HelpCircle, ArrowRight } from 'lucide-react';
 import SingleQuestion from './SingleQuestion';
 import MatchingQuestion from './MatchingQuestion';
-
-// Видалено: import { tests } from '../data/tests';
+import { tests } from '../data/tests';
 
 export default function TestView({ 
   currentQuestion, 
@@ -13,12 +12,9 @@ export default function TestView({
   setAnswers, 
   checkedQuestions, 
   setCheckedQuestions,
-  theme,
-  activeTestData // Додано пропс із даними обраного тесту
+  theme 
 }) {
-  // Використовуємо питання з обраного тесту
-  const questions = activeTestData.questions;
-  const q = questions[currentQuestion];
+  const q = tests[currentQuestion];
   const isChecked = checkedQuestions[currentQuestion];
 
   const handleAnswer = (newAnswer) => {
@@ -30,15 +26,14 @@ export default function TestView({
   };
 
   const handleNext = () => {
-    // Циклічне перемикання базуючись на довжині поточного тесту
-    setCurrentQuestion((p) => (p + 1) % questions.length);
+    setCurrentQuestion((p) => (p + 1) % tests.length);
   };
 
   return (
     <div className="animate-fadeIn">
-      {/* Панель питань - тепер адаптована під кількість питань у поточному тесті */}
+      {/* Панель питань */}
       <div className="flex gap-2 mb-10 overflow-x-auto pb-4 scrollbar-hide">
-        {questions.map((_, i) => (
+        {tests.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrentQuestion(i)}
