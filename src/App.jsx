@@ -2,28 +2,74 @@
 import React, { useState } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
+import TestSelector from './components/TestSelector';
 import TestView from './components/TestView';
+import Profile from './components/Profile';
 import { getTheme } from './config/theme';
+import { users } from './data/users';
+import { test1 } from './data/test1';
+import { test2 } from './data/test2';
+import { test3 } from './data/test3';
+
+const allTests = [test1, test2, test3];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
+  const [selectedTest, setSelectedTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [checkedQuestions, setCheckedQuestions] = useState({});
+  const [progress, setProgress] = useState({
+    test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
+    test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
+    test3: { completed: 0, total: test3.questions.length, correctAnswers: {} }
+  });
 
   const theme = getTheme(isDarkMode);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (email === 'test@example.com' && password === '123456') {
+    const user = users.find(u => u.email === email && u.password === password);
+    
+    if (user) {
       setIsLoggedIn(true);
+      setCurrentUser(user);
     } else {
-      alert('Спробуйте: test@example.com / 123456');
+      alert('Невірний логін або пароль!\n\nТестові акаунти:\ntest@example.com / 123456\nstudent@nmt.ua / nmt2025\nvip@history.com / ukraine\ndemo@test.com / demo123');
     }
+  };
+
+  const handleSelectTest = (test) => {
+    setSelectedTest(test);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setCheckedQuestions({});
+  };
+
+  const handleBackToTests = () => {
+    setSelectedTest(null);
+  };
+
+  const handleUpdateProgress = (testId, questionIndex) => {
+    setProgress(prev => {
+      const testProgress = prev[testId];
+      const newCorrectAnswers = { ...testProgress.correctAnswers, [questionIndex]: true };
+      const completed = Object.keys(newCorrectAnswers).length;
+      
+      return {
+        ...prev,
+        [testId]: {
+          ...testProgress,
+          completed,
+          correctAnswers: newCorrectAnswers
+        }
+      };
+    });
   };
 
   if (!isLoggedIn) {
@@ -52,22 +98,37 @@ export default function App() {
       />
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {activeTab === 'tests' && (
+        {activeTab === 'tests' && !selectedTest && (
+          <TestSelector
+            tests={allTests}
+            onSelectTest={handleSelectTest}
+            progress={progress}
+            theme={theme}
+          />
+        )}
+
+        {activeTab === 'tests' && selectedTest && (
           <TestView
+            currentTest={selectedTest}
             currentQuestion={currentQuestion}
             setCurrentQuestion={setCurrentQuestion}
             answers={answers}
             setAnswers={setAnswers}
             checkedQuestions={checkedQuestions}
             setCheckedQuestions={setCheckedQuestions}
+            onUpdateProgress={handleUpdateProgress}
+            onBackToTests={handleBackToTests}
             theme={theme}
           />
         )}
 
         {activeTab === 'profile' && (
-          <div className="text-center mt-20 p-20 border-4 border-dashed rounded-[3rem] opacity-30 text-3xl font-black">
-            Прогрес завантажується...
-          </div>
+          <Profile
+            user={currentUser}
+            tests={allTests}
+            progress={progress}
+            theme={theme}
+          />
         )}
 
         {activeTab === 'about' && (
