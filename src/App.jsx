@@ -1,8 +1,8 @@
+// App.jsx - Головний компонент
 import React, { useState } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import TestView from './components/TestView';
-import TestLobby from './components/TestLobby'; // <--- ВАЖЛИВО: додано імпорт
 import { getTheme } from './config/theme';
 
 export default function App() {
@@ -11,9 +11,6 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
-  
-  // Стани для тестів
-  const [selectedTest, setSelectedTest] = useState(null); // Який тест зараз вибрано
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [checkedQuestions, setCheckedQuestions] = useState({});
@@ -29,19 +26,16 @@ export default function App() {
     }
   };
 
-  const handleTabChange = (tab) => {
-    if (tab === 'tests') {
-      setSelectedTest(null); // Скидаємо вибір тесту при переключенні на вкладку "Тести"
-    }
-    setActiveTab(tab);
-  };
-
   if (!isLoggedIn) {
     return (
       <LoginForm
-        email={email} setEmail={setEmail}
-        password={password} setPassword={setPassword}
-        onLogin={handleLogin} theme={theme} isDarkMode={isDarkMode}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        onLogin={handleLogin}
+        theme={theme}
+        isDarkMode={isDarkMode}
       />
     );
   }
@@ -50,7 +44,7 @@ export default function App() {
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors pb-10 font-sans`}>
       <Header
         activeTab={activeTab}
-        setActiveTab={handleTabChange}
+        setActiveTab={setActiveTab}
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
         onLogout={() => setIsLoggedIn(false)}
@@ -59,31 +53,15 @@ export default function App() {
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
         {activeTab === 'tests' && (
-          !selectedTest ? (
-            <div className="animate-fadeIn">
-              <h2 className="text-4xl font-black mb-10 italic uppercase tracking-tighter">Обери свій виклик</h2>
-              <TestLobby onSelectTest={setSelectedTest} theme={theme} />
-            </div>
-          ) : (
-            <div className="animate-fadeIn">
-              <button 
-                onClick={() => setSelectedTest(null)}
-                className="mb-6 opacity-40 hover:opacity-100 flex items-center gap-2 font-bold uppercase text-xs transition"
-              >
-                ← Повернутися до вибору
-              </button>
-              <TestView
-                activeTestData={selectedTest}
-                currentQuestion={currentQuestion}
-                setCurrentQuestion={setCurrentQuestion}
-                answers={answers}
-                setAnswers={setAnswers}
-                checkedQuestions={checkedQuestions}
-                setCheckedQuestions={setCheckedQuestions}
-                theme={theme}
-              />
-            </div>
-          )
+          <TestView
+            currentQuestion={currentQuestion}
+            setCurrentQuestion={setCurrentQuestion}
+            answers={answers}
+            setAnswers={setAnswers}
+            checkedQuestions={checkedQuestions}
+            setCheckedQuestions={setCheckedQuestions}
+            theme={theme}
+          />
         )}
 
         {activeTab === 'profile' && (
@@ -95,13 +73,20 @@ export default function App() {
         {activeTab === 'about' && (
           <div className="max-w-3xl mx-auto text-center animate-slideIn">
             <h1 className="text-5xl font-black mb-8 italic">НМТ ЕКСПРЕС 2025</h1>
-            <p className="text-2xl opacity-50">Найкращий симулятор тестів.</p>
+            <p className="text-2xl opacity-50">
+              Найкращий симулятор тестів з історії. З кожним правильним хрестиком ти стаєш ближчим до 200 балів.
+            </p>
           </div>
         )}
       </main>
-      
-      {/* Стилі без змін */}
-      <style>{`.animate-fadeIn { animation: fadeIn 0.4s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+        .animate-slideIn { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 }
