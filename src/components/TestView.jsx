@@ -40,13 +40,40 @@ export default function TestView({
       );
     }
     
-    if (isCorrect) {
-      onUpdateProgress(currentTest.id, currentQuestion);
-    }
+    // Оновлюємо прогрес для цього питання
+    onUpdateProgress(currentTest.id, currentQuestion, isCorrect);
   };
 
   const handleNext = () => {
-    setCurrentQuestion((p) => (p + 1) % tests.length);
+    if (currentQuestion < tests.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else {
+      // Підрахунок результатів
+      let correctCount = 0;
+      tests.forEach((question, i) => {
+        if (checkedQuestions[i]) {
+          const userAnswer = answers[i];
+          let isCorrect = false;
+          
+          if (question.type === 'single') {
+            isCorrect = userAnswer?.[0] === question.correct;
+          } else if (question.type === 'matching' || question.type === 'sequence') {
+            const correctAnswers = question.correctMatching || question.correctSequence;
+            isCorrect = Object.keys(correctAnswers).every(
+              key => userAnswer?.[key] === correctAnswers[key]
+            );
+          }
+          
+          if (isCorrect) correctCount++;
+        }
+      });
+      
+      const percentage = Math.round((correctCount / tests.length) * 100);
+      alert(`Тест завершено!\n\nПравильних відповідей: ${correctCount} з ${tests.length}\nРезультат: ${percentage}%`);
+      
+      // Повертаємось до вибору тестів
+      onBackToTests();
+    }
   };
 
   return (
@@ -70,21 +97,45 @@ export default function TestView({
 
       {/* Панель питань */}
       <div className="flex gap-2 mb-10 overflow-x-auto pb-4 scrollbar-hide">
-        {tests.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentQuestion(i)}
-            className={`min-w-[54px] h-[54px] rounded-2xl font-black transition-all border-2 ${
-              currentQuestion === i
-                ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/30'
-                : checkedQuestions[i]
-                ? 'bg-zinc-800 text-white border-zinc-700'
-                : 'border-zinc-500/20'
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
+        {tests.map((_, i) => {
+          const isCorrect = currentTest && onUpdateProgress && 
+                           typeof currentTest.id === 'string' && 
+                           checkedQuestions[i] &&
+                           (() => {
+                             const userAnswer = answers[i];
+                             const question = tests[i];
+                             if (question.type === 'single') {
+                               return userAnswer?.[0] === question.correct;
+                             } else if (question.type === 'matching' || question.type === 'sequence') {
+                               const correctAnswers = question.correctMatching || question.correctSequence;
+                               return Object.keys(correctAnswers).every(
+                                 key => userAnswer?.[key] === correctAnswers[key]
+                               );
+                             }
+                             return false;
+                           })();
+          
+          return (
+            <button 
+              key={i} 
+              onClick={() => setCurrentQuestion(i)} 
+              className={`min-w-[54px] h-[54px] rounded-2xl font-black transition-all border-2 relative ${
+                currentQuestion === i
+                  ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/30'
+                  : checkedQuestions[i]
+                  ? isCorrect 
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-zinc-800 text-white border-zinc-700'
+                  : 'border-zinc-500/20'
+              }`}
+            >
+              {i + 1}
+              {checkedQuestions[i] && isCorrect && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white"></div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className={`${theme.card} p-12 rounded-[3.5rem] border shadow-sm`}>
@@ -147,7 +198,8 @@ export default function TestView({
               onClick={handleNext}
               className="w-full bg-slate-900 dark:bg-white dark:text-black text-white p-7 rounded-3xl font-black text-2xl uppercase tracking-[0.2em] flex justify-center items-center gap-4 transition-all hover:opacity-80"
             >
-              Наступне <ArrowRight size={32} />
+              {currentQuestion < tests.length - 1 ? 'Наступне' : 'Завершити тест'} 
+              <ArrowRight size={32} />
             </button>
           )}
         </div>
