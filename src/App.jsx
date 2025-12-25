@@ -40,7 +40,7 @@ export default function App() {
       setIsLoggedIn(true);
       setCurrentUser(user);
     } else {
-      alert('Невірний логін або пароль!\n\nТестові акаунти:\ntest@example.com / 123456\nstudent@nmt.ua / nmt2025\nvip@history.com / ukraine\ndemo@test.com / demo123');
+      alert('Невірний логін або пароль!\n\nЗверніться до адміністратора для отримання доступу.');
     }
   };
 
