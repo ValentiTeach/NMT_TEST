@@ -53,12 +53,22 @@ export default function App() {
 
   const handleBackToTests = () => {
     setSelectedTest(null);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setCheckedQuestions({});
   };
 
-  const handleUpdateProgress = (testId, questionIndex) => {
+  const handleUpdateProgress = (testId, questionIndex, isCorrect) => {
     setProgress(prev => {
       const testProgress = prev[testId];
-      const newCorrectAnswers = { ...testProgress.correctAnswers, [questionIndex]: true };
+      const newCorrectAnswers = { ...testProgress.correctAnswers };
+      
+      if (isCorrect) {
+        newCorrectAnswers[questionIndex] = true;
+      } else {
+        delete newCorrectAnswers[questionIndex];
+      }
+      
       const completed = Object.keys(newCorrectAnswers).length;
       
       return {
