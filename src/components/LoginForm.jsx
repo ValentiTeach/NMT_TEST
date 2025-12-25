@@ -20,9 +20,9 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
 
       {/* Центральна форма */}
       <div className="relative z-10 w-full max-w-md">
-        {/* Тризуб або історичний символ */}
+        {/* Історичний символ - Козацький корабель */}
         <div className="text-center mb-8 animate-fade-in-down">
-          <div className="text-8xl mb-4 filter drop-shadow-2xl animate-glow">🔱</div>
+          <div className="text-8xl mb-4 filter drop-shadow-2xl animate-glow">⛵</div>
           <div className="h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-teal-500 to-transparent animate-expand"></div>
         </div>
 
@@ -46,7 +46,7 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
                     ? 'bg-zinc-800/50 border-zinc-700 text-white focus:border-teal-500' 
                     : 'bg-slate-50 border-slate-200 focus:border-teal-500'
                 } focus:ring-4 focus:ring-teal-500/10`}
-                placeholder="test@example.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -75,11 +75,6 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
           <button className="w-full mt-8 bg-gradient-to-r from-teal-600 to-teal-500 text-white py-5 rounded-2xl font-black text-xl hover:shadow-2xl hover:shadow-teal-500/30 transition-all shadow-xl active:scale-95 uppercase tracking-widest animate-slide-in-late">
             Увійти
           </button>
-
-          <div className={`mt-6 text-center ${theme.subtext} text-xs animate-fade-in-late`}>
-            <p>Тестові акаунти:</p>
-            <p className="font-mono mt-1">test@example.com / 123456</p>
-          </div>
         </form>
 
         {/* Декоративний орнамент знизу */}
