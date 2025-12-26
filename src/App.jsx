@@ -30,11 +30,41 @@ export default function App() {
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-    test3: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+    test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const theme = getTheme(isDarkMode);
+
+  // Перевірка сесії при завантаженні
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        if (!window.storage) {
+          console.log('Storage API недоступний');
+          setIsCheckingSession(false);
+          return;
+        }
+        const sessionResult = await window.storage.get('current-session', true);
+        if (sessionResult && sessionResult.value) {
+          const session = JSON.parse(sessionResult.value);
+          const user = users.find(u => u.email === session.email);
+          if (user) {
+            setCurrentUser(user);
+            setIsLoggedIn(true);
+            await loadUserProgress(user.email);
+          }
+        }
+      } catch (error) {
+        console.log('Сесія не знайдена', error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    checkSession();
+  }, []);
 
   // Автоматичне збереження прогресу кожні 30 секунд
   useEffect(() => {
@@ -63,13 +93,17 @@ export default function App() {
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
     try {
+      if (!window.storage) {
+        console.error('Storage API недоступний');
+        return;
+      }
       const result = await window.storage.get(`progress:${userEmail}`, true);
       if (result && result.value) {
         const savedProgress = JSON.parse(result.value);
         setProgress(savedProgress);
       }
     } catch (error) {
-      console.log('Прогрес не знайдено, використовуємо початковий');
+      console.log('Прогрес не знайдено, використовуємо початковий', error);
     } finally {
       setIsLoadingProgress(false);
     }
@@ -78,7 +112,12 @@ export default function App() {
   // Збереження прогресу користувача
   const saveUserProgress = async (userEmail, progressData) => {
     try {
+      if (!window.storage) {
+        console.error('Storage API недоступний');
+        return;
+      }
       await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
+      console.log('Прогрес збережено успішно');
     } catch (error) {
       console.error('Помилка збереження прогресу:', error);
     }
@@ -91,6 +130,10 @@ export default function App() {
     if (user) {
       setIsLoggedIn(true);
       setCurrentUser(user);
+      // Зберігаємо сесію
+      if (window.storage) {
+        await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
+      }
       // Завантажуємо прогрес користувача
       await loadUserProgress(user.email);
     } else {
@@ -102,6 +145,10 @@ export default function App() {
     // Зберігаємо прогрес перед виходом
     if (currentUser) {
       await saveUserProgress(currentUser.email, progress);
+    }
+    // Видаляємо сесію
+    if (window.storage) {
+      await window.storage.delete('current-session', true);
     }
     setIsLoggedIn(false);
     setCurrentUser(null);
@@ -153,6 +200,17 @@ export default function App() {
       await saveUserProgress(currentUser.email, newProgress);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <div className={`min-h-screen ${theme.bg} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="text-8xl mb-4 animate-pulse">⛵</div>
+          <div className="text-2xl font-black text-teal-600">Завантаження...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
