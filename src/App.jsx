@@ -13,7 +13,7 @@ import { test3 } from './data/test3';
 import { test4 } from './data/test4';
 
 
-const allTests = [test1, test2, test3];
+const allTests = [test1, test2, test3, test4];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
