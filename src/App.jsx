@@ -12,7 +12,6 @@ import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
 
-
 const allTests = [test1, test2, test3, test4];
 
 export default function App() {
@@ -31,7 +30,6 @@ export default function App() {
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
     test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
-
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -41,25 +39,39 @@ export default function App() {
   // Перевірка сесії при завантаженні
   useEffect(() => {
     const checkSession = async () => {
+      console.log('🔍 Перевірка сесії при завантаженні...');
       try {
         if (!window.storage) {
-          console.log('Storage API недоступний');
+          console.error('❌ Storage API недоступний!');
           setIsCheckingSession(false);
           return;
         }
+        console.log('✅ Storage API доступний');
+        
         const sessionResult = await window.storage.get('current-session', true);
+        console.log('📦 Результат get сесії:', sessionResult);
+        
         if (sessionResult && sessionResult.value) {
+          console.log('✅ Сесія знайдена!');
           const session = JSON.parse(sessionResult.value);
+          console.log('👤 Email з сесії:', session.email);
+          
           const user = users.find(u => u.email === session.email);
           if (user) {
+            console.log('✅ Користувач знайдений:', user.name);
             setCurrentUser(user);
             setIsLoggedIn(true);
             await loadUserProgress(user.email);
+          } else {
+            console.log('❌ Користувача не знайдено в базі');
           }
+        } else {
+          console.log('ℹ️ Сесія не знайдена - потрібен новий логін');
         }
       } catch (error) {
-        console.log('Сесія не знайдена', error);
+        console.error('❌ Помилка перевірки сесії:', error);
       } finally {
+        console.log('✅ Перевірка сесії завершена');
         setIsCheckingSession(false);
       }
     };
@@ -71,8 +83,7 @@ export default function App() {
     if (isLoggedIn && currentUser) {
       const interval = setInterval(() => {
         saveUserProgress(currentUser.email, progress);
-      }, 30000); // Кожні 30 секунд
-
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser, progress]);
@@ -84,7 +95,6 @@ export default function App() {
         saveUserProgress(currentUser.email, progress);
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isLoggedIn, currentUser, progress]);
@@ -92,18 +102,22 @@ export default function App() {
   // Завантаження прогресу користувача
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
+    console.log('📥 Завантаження прогресу для:', userEmail);
     try {
       if (!window.storage) {
-        console.error('Storage API недоступний');
+        console.error('❌ Storage API недоступний');
         return;
       }
       const result = await window.storage.get(`progress:${userEmail}`, true);
       if (result && result.value) {
         const savedProgress = JSON.parse(result.value);
+        console.log('✅ Прогрес завантажено:', savedProgress);
         setProgress(savedProgress);
+      } else {
+        console.log('ℹ️ Прогрес не знайдено, використовуємо початковий');
       }
     } catch (error) {
-      console.log('Прогрес не знайдено, використовуємо початковий', error);
+      console.error('❌ Помилка завантаження прогресу:', error);
     } finally {
       setIsLoadingProgress(false);
     }
@@ -113,42 +127,64 @@ export default function App() {
   const saveUserProgress = async (userEmail, progressData) => {
     try {
       if (!window.storage) {
-        console.error('Storage API недоступний');
+        console.error('❌ Storage API недоступний');
         return;
       }
       await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
-      console.log('Прогрес збережено успішно');
+      console.log('✅ Прогрес збережено для:', userEmail);
     } catch (error) {
-      console.error('Помилка збереження прогресу:', error);
+      console.error('❌ Помилка збереження прогресу:', error);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log('🔐 Спроба входу для:', email);
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
+      console.log('✅ Логін успішний для:', user.name);
       setIsLoggedIn(true);
       setCurrentUser(user);
+      
       // Зберігаємо сесію
       if (window.storage) {
-        await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
+        try {
+          await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
+          console.log('✅ Сесія збережена для:', user.email);
+          
+          // Перевірка збереження
+          const check = await window.storage.get('current-session', true);
+          console.log('✅ Перевірка: сесія успішно збережена:', check);
+        } catch (error) {
+          console.error('❌ Помилка збереження сесії:', error);
+        }
+      } else {
+        console.error('❌ window.storage недоступний при логіні!');
       }
+      
       // Завантажуємо прогрес користувача
       await loadUserProgress(user.email);
     } else {
+      console.log('❌ Невірний логін або пароль');
       alert('Невірний логін або пароль!\n\nЗверніться до адміністратора для отримання доступу.');
     }
   };
 
   const handleLogout = async () => {
+    console.log('🚪 Вихід з акаунту:', currentUser?.email);
     // Зберігаємо прогрес перед виходом
     if (currentUser) {
       await saveUserProgress(currentUser.email, progress);
     }
     // Видаляємо сесію
     if (window.storage) {
-      await window.storage.delete('current-session', true);
+      try {
+        await window.storage.delete('current-session', true);
+        console.log('✅ Сесія видалена');
+      } catch (error) {
+        console.error('❌ Помилка видалення сесії:', error);
+      }
     }
     setIsLoggedIn(false);
     setCurrentUser(null);
