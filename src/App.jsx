@@ -10,8 +10,10 @@ import { users } from './data/users';
 import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
+import { test4 } from './data/test4';
 
-const allTests = [test1, test2, test3];
+
+const allTests = [test1, test2, test3, test4];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -27,7 +29,8 @@ export default function App() {
   const [progress, setProgress] = useState({
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
-    test3: { completed: 0, total: test3.questions.length, correctAnswers: {} }
+    test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
+    test3: { completed: 0, total: test4.questions.length, correctAnswers: {} }
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
