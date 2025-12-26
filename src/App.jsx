@@ -1,5 +1,5 @@
 // App.jsx - Головний компонент
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
@@ -29,19 +29,85 @@ export default function App() {
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} }
   });
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
   const theme = getTheme(isDarkMode);
 
-  const handleLogin = (e) => {
+  // Автоматичне збереження прогресу кожні 30 секунд
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      const interval = setInterval(() => {
+        saveUserProgress(currentUser.email, progress);
+      }, 30000); // Кожні 30 секунд
+
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn, currentUser, progress]);
+
+  // Збереження при закритті вкладки
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isLoggedIn && currentUser) {
+        saveUserProgress(currentUser.email, progress);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isLoggedIn, currentUser, progress]);
+
+  // Завантаження прогресу користувача
+  const loadUserProgress = async (userEmail) => {
+    setIsLoadingProgress(true);
+    try {
+      const result = await window.storage.get(`progress:${userEmail}`);
+      if (result && result.value) {
+        const savedProgress = JSON.parse(result.value);
+        setProgress(savedProgress);
+      }
+    } catch (error) {
+      console.log('Прогрес не знайдено, використовуємо початковий');
+    } finally {
+      setIsLoadingProgress(false);
+    }
+  };
+
+  // Збереження прогресу користувача
+  const saveUserProgress = async (userEmail, progressData) => {
+    try {
+      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData));
+    } catch (error) {
+      console.error('Помилка збереження прогресу:', error);
+    }
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
       setIsLoggedIn(true);
       setCurrentUser(user);
+      // Завантажуємо прогрес користувача
+      await loadUserProgress(user.email);
     } else {
       alert('Невірний логін або пароль!\n\nЗверніться до адміністратора для отримання доступу.');
     }
+  };
+
+  const handleLogout = async () => {
+    // Зберігаємо прогрес перед виходом
+    if (currentUser) {
+      await saveUserProgress(currentUser.email, progress);
+    }
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setEmail('');
+    setPassword('');
+    setSelectedTest(null);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setCheckedQuestions({});
   };
 
   const handleSelectTest = (test) => {
@@ -58,28 +124,31 @@ export default function App() {
     setCheckedQuestions({});
   };
 
-  const handleUpdateProgress = (testId, questionIndex, isCorrect) => {
-    setProgress(prev => {
-      const testProgress = prev[testId];
-      const newCorrectAnswers = { ...testProgress.correctAnswers };
-      
-      if (isCorrect) {
-        newCorrectAnswers[questionIndex] = true;
-      } else {
-        delete newCorrectAnswers[questionIndex];
-      }
-      
-      const completed = Object.keys(newCorrectAnswers).length;
-      
-      return {
-        ...prev,
-        [testId]: {
-          ...testProgress,
-          completed,
-          correctAnswers: newCorrectAnswers
-        }
-      };
-    });
+  const handleUpdateProgress = async (testId, questionIndex, isCorrect) => {
+    const newProgress = { ...progress };
+    const testProgress = newProgress[testId];
+    const newCorrectAnswers = { ...testProgress.correctAnswers };
+    
+    if (isCorrect) {
+      newCorrectAnswers[questionIndex] = true;
+    } else {
+      delete newCorrectAnswers[questionIndex];
+    }
+    
+    const completed = Object.keys(newCorrectAnswers).length;
+    
+    newProgress[testId] = {
+      ...testProgress,
+      completed,
+      correctAnswers: newCorrectAnswers
+    };
+    
+    setProgress(newProgress);
+    
+    // Автоматично зберігаємо прогрес
+    if (currentUser) {
+      await saveUserProgress(currentUser.email, newProgress);
+    }
   };
 
   if (!isLoggedIn) {
@@ -92,6 +161,7 @@ export default function App() {
         onLogin={handleLogin}
         theme={theme}
         isDarkMode={isDarkMode}
+        isLoading={isLoadingProgress}
       />
     );
   }
@@ -103,7 +173,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={handleLogout}
         theme={theme}
       />
 
