@@ -29,7 +29,7 @@ export default function App() {
   const [progress, setProgress] = useState({
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
-    test3: { completed: 0, total: test3.questions.length, correctAnswers: {} }
+    test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
     test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
