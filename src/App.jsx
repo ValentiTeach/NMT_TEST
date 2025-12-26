@@ -36,6 +36,54 @@ export default function App() {
 
   const theme = getTheme(isDarkMode);
 
+  // Завантаження прогресу користувача
+  const loadUserProgress = async (userEmail) => {
+    setIsLoadingProgress(true);
+    console.log('📥 Завантаження прогресу для:', userEmail);
+    try {
+      if (!window.storage) {
+        console.error('❌ Storage API недоступний');
+        return;
+      }
+      const result = await window.storage.get(`progress:${userEmail}`, true);
+      if (result && result.value) {
+        const savedProgress = JSON.parse(result.value);
+        console.log('✅ Прогрес завантажено:', savedProgress);
+        
+        // ВАЖЛИВО: Мерджимо збережений прогрес з початковим (для нових тестів)
+        const mergedProgress = {
+          test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
+          test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
+          test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
+          test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+        };
+        
+        console.log('✅ Прогрес після мерджу:', mergedProgress);
+        setProgress(mergedProgress);
+      } else {
+        console.log('ℹ️ Прогрес не знайдено, використовуємо початковий');
+      }
+    } catch (error) {
+      console.error('❌ Помилка завантаження прогресу:', error);
+    } finally {
+      setIsLoadingProgress(false);
+    }
+  };
+
+  // Збереження прогресу користувача
+  const saveUserProgress = async (userEmail, progressData) => {
+    try {
+      if (!window.storage) {
+        console.error('❌ Storage API недоступний');
+        return;
+      }
+      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
+      console.log('✅ Прогрес збережено для:', userEmail);
+    } catch (error) {
+      console.error('❌ Помилка збереження прогресу:', error);
+    }
+  };
+
   // Перевірка сесії при завантаженні
   useEffect(() => {
     const checkSession = async () => {
@@ -98,44 +146,6 @@ export default function App() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isLoggedIn, currentUser, progress]);
-
-  // Завантаження прогресу користувача
-  const loadUserProgress = async (userEmail) => {
-    setIsLoadingProgress(true);
-    console.log('📥 Завантаження прогресу для:', userEmail);
-    try {
-      if (!window.storage) {
-        console.error('❌ Storage API недоступний');
-        return;
-      }
-      const result = await window.storage.get(`progress:${userEmail}`, true);
-      if (result && result.value) {
-        const savedProgress = JSON.parse(result.value);
-        console.log('✅ Прогрес завантажено:', savedProgress);
-        setProgress(savedProgress);
-      } else {
-        console.log('ℹ️ Прогрес не знайдено, використовуємо початковий');
-      }
-    } catch (error) {
-      console.error('❌ Помилка завантаження прогресу:', error);
-    } finally {
-      setIsLoadingProgress(false);
-    }
-  };
-
-  // Збереження прогресу користувача
-  const saveUserProgress = async (userEmail, progressData) => {
-    try {
-      if (!window.storage) {
-        console.error('❌ Storage API недоступний');
-        return;
-      }
-      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
-      console.log('✅ Прогрес збережено для:', userEmail);
-    } catch (error) {
-      console.error('❌ Помилка збереження прогресу:', error);
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
