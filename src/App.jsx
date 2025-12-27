@@ -1,4 +1,4 @@
-// App.jsx - Головний компонент
+// App.jsx - Головний компонент (FIXED VERSION)
 import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
@@ -11,6 +11,7 @@ import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
+import storage from './utils/storageAdapter'; // ← НОВИЙ ІМПОРТ
 
 const allTests = [test1, test2, test3, test4];
 
@@ -36,16 +37,46 @@ export default function App() {
 
   const theme = getTheme(isDarkMode);
 
+  // Завантаження теми при старті
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const result = await storage.get('theme-mode');
+        if (result && result.value) {
+          const savedTheme = JSON.parse(result.value);
+          setIsDarkMode(savedTheme.isDarkMode || false);
+          console.log('✅ Тему завантажено:', savedTheme.isDarkMode ? 'темна' : 'світла');
+        }
+      } catch (error) {
+        console.error('❌ Помилка завантаження теми:', error);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  // Збереження теми при зміні
+  useEffect(() => {
+    const saveTheme = async () => {
+      try {
+        await storage.set('theme-mode', JSON.stringify({ isDarkMode }));
+        console.log('✅ Тему збережено:', isDarkMode ? 'темна' : 'світла');
+      } catch (error) {
+        console.error('❌ Помилка збереження теми:', error);
+      }
+    };
+    saveTheme();
+  }, [isDarkMode]);
+
   // Завантаження прогресу користувача
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
     console.log('📥 Завантаження прогресу для:', userEmail);
     try {
-      if (!window.storage) {
+      if (!storage.isAvailable()) {
         console.error('❌ Storage API недоступний');
         return;
       }
-      const result = await window.storage.get(`progress:${userEmail}`, true);
+      const result = await storage.get(`progress:${userEmail}`, true);
       if (result && result.value) {
         const savedProgress = JSON.parse(result.value);
         console.log('✅ Прогрес завантажено:', savedProgress);
@@ -73,11 +104,11 @@ export default function App() {
   // Збереження прогресу користувача
   const saveUserProgress = async (userEmail, progressData) => {
     try {
-      if (!window.storage) {
+      if (!storage.isAvailable()) {
         console.error('❌ Storage API недоступний');
         return;
       }
-      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
+      await storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
       console.log('✅ Прогрес збережено для:', userEmail);
     } catch (error) {
       console.error('❌ Помилка збереження прогресу:', error);
@@ -89,14 +120,14 @@ export default function App() {
     const checkSession = async () => {
       console.log('🔍 Перевірка сесії при завантаженні...');
       try {
-        if (!window.storage) {
+        if (!storage.isAvailable()) {
           console.error('❌ Storage API недоступний!');
           setIsCheckingSession(false);
           return;
         }
-        console.log('✅ Storage API доступний');
+        console.log('✅ Storage API доступний:', storage.getType());
         
-        const sessionResult = await window.storage.get('current-session', true);
+        const sessionResult = await storage.get('current-session', true);
         console.log('📦 Результат get сесії:', sessionResult);
         
         if (sessionResult && sessionResult.value) {
@@ -158,19 +189,19 @@ export default function App() {
       setCurrentUser(user);
       
       // Зберігаємо сесію
-      if (window.storage) {
+      if (storage.isAvailable()) {
         try {
-          await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
+          await storage.set('current-session', JSON.stringify({ email: user.email }), true);
           console.log('✅ Сесія збережена для:', user.email);
           
           // Перевірка збереження
-          const check = await window.storage.get('current-session', true);
+          const check = await storage.get('current-session', true);
           console.log('✅ Перевірка: сесія успішно збережена:', check);
         } catch (error) {
           console.error('❌ Помилка збереження сесії:', error);
         }
       } else {
-        console.error('❌ window.storage недоступний при логіні!');
+        console.error('❌ Storage недоступний при логіні!');
       }
       
       // Завантажуємо прогрес користувача
@@ -188,9 +219,9 @@ export default function App() {
       await saveUserProgress(currentUser.email, progress);
     }
     // Видаляємо сесію
-    if (window.storage) {
+    if (storage.isAvailable()) {
       try {
-        await window.storage.delete('current-session', true);
+        await storage.delete('current-session', true);
         console.log('✅ Сесія видалена');
       } catch (error) {
         console.error('❌ Помилка видалення сесії:', error);
