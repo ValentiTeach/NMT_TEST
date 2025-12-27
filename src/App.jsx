@@ -13,7 +13,11 @@ import { test3 } from './data/test3';
 import { test4 } from './data/test4';
 import storage from './utils/storageAdapter'; // ← НОВИЙ ІМПОРТ
 
-const allTests = [test1, test2, test3, test4];
+// Тести НМТ (test1, test2, test3)
+const nmtTests = [test1, test2, test3];
+
+// Тести для 9 класу (test4)
+const grade9Tests = [test4];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -408,7 +412,7 @@ export default function App() {
                     </p>
                     <div className="flex items-center gap-3">
                       <span className="px-4 py-2 bg-orange-500/10 rounded-xl text-orange-600 font-bold text-sm">
-                        Скоро
+                        1 тест
                       </span>
                       <span className="px-4 py-2 bg-yellow-500/10 rounded-xl text-yellow-600 font-bold text-sm">
                         Рівень: Середній
@@ -426,7 +430,7 @@ export default function App() {
 
         {activeTab === 'tests' && selectedCategory === 'nmt' && !selectedTest && (
           <TestSelector
-            tests={allTests}
+            tests={nmtTests}
             onSelectTest={handleSelectTest}
             onBack={handleBackToCategories}
             progress={progress}
@@ -451,19 +455,13 @@ export default function App() {
         )}
 
         {activeTab === 'tests' && selectedCategory === 'grade9' && !selectedTest && (
-          <div className="max-w-3xl mx-auto text-center animate-fadeIn">
-            <div className="text-8xl mb-6">🚧</div>
-            <h2 className="text-4xl font-black mb-4">Розділ в розробці</h2>
-            <p className={`${theme.subtext} text-xl mb-8`}>
-              Тести для 9 класу скоро будуть додані
-            </p>
-            <button
-              onClick={handleBackToCategories}
-              className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-bold text-lg hover:bg-teal-700 transition"
-            >
-              Повернутися до категорій
-            </button>
-          </div>
+          <TestSelector
+            tests={grade9Tests}
+            onSelectTest={handleSelectTest}
+            onBack={handleBackToCategories}
+            progress={progress}
+            theme={theme}
+          />
         )}
 
         {activeTab === 'tests' && selectedTest && (
@@ -484,7 +482,7 @@ export default function App() {
         {activeTab === 'profile' && (
           <Profile
             user={currentUser}
-            tests={allTests}
+            tests={[...nmtTests, ...grade9Tests]}
             progress={progress}
             theme={theme}
           />
