@@ -1,10 +1,20 @@
 // components/TestSelector.jsx
 import React from 'react';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, Home } from 'lucide-react';
 
-export default function TestSelector({ tests, onSelectTest, progress, theme }) {
+export default function TestSelector({ tests, onSelectTest, onBack, progress, theme }) {
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Кнопка назад */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className={`${theme.card} px-6 py-3 rounded-xl border-2 font-bold hover:scale-105 transition-all flex items-center gap-2 mb-8`}
+        >
+          <Home size={20} /> Назад до категорій
+        </button>
+      )}
+
       <h1 className="text-5xl font-black mb-4 text-center">Оберіть тест</h1>
       <p className={`text-center ${theme.subtext} mb-16 text-xl`}>
         Виберіть напрямок для підготовки до НМТ
