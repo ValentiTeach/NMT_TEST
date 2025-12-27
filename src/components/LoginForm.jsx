@@ -1,4 +1,4 @@
-// components/LoginForm.jsx
+// components/LoginForm.jsx - З кастомним логотипом
 import React from 'react';
 
 export default function LoginForm({ email, setEmail, password, setPassword, onLogin, theme, isDarkMode }) {
@@ -20,9 +20,23 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
 
       {/* Центральна форма */}
       <div className="relative z-10 w-full max-w-md">
-        {/* Історичний символ - Козацький корабель */}
+        {/* КАСТОМНИЙ ЛОГОТИП */}
         <div className="text-center mb-8 animate-fade-in-down">
-          <div className="text-8xl mb-4 filter drop-shadow-2xl animate-glow">⛵</div>
+          <div className="mb-4 flex justify-center">
+            {/* Твоя іконка MainLogo */}
+            <img 
+              src="/images/MainLogo.png"
+              alt="НМТ Логотип" 
+              className="w-32 h-32 object-contain filter drop-shadow-2xl animate-glow"
+              onError={(e) => {
+                // Fallback на емодзі якщо зображення не завантажилось
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'block';
+              }}
+            />
+            {/* Fallback емодзі (якщо іконка не завантажиться) */}
+            <div className="text-8xl hidden">⛵</div>
+          </div>
           <div className="h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-teal-500 to-transparent animate-expand"></div>
         </div>
 
