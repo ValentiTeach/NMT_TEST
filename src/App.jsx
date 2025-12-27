@@ -22,6 +22,7 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedTest, setSelectedTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -246,9 +247,15 @@ export default function App() {
 
   const handleBackToTests = () => {
     setSelectedTest(null);
+    setSelectedCategory(null);
     setCurrentQuestion(0);
     setAnswers({});
     setCheckedQuestions({});
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedTest(null);
+    setSelectedCategory(null);
   };
 
   const handleUpdateProgress = async (testId, questionIndex, isCorrect) => {
@@ -316,13 +323,147 @@ export default function App() {
       />
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {activeTab === 'tests' && !selectedTest && (
+        {activeTab === 'tests' && !selectedCategory && !selectedTest && (
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-5xl font-black mb-4 text-center">Оберіть категорію</h1>
+            <p className={`text-center ${theme.subtext} mb-16 text-xl`}>
+              Виберіть рівень підготовки
+            </p>
+
+            <div className="grid gap-6">
+              {/* НМТ Категорія */}
+              <button
+                onClick={() => setSelectedCategory('nmt')}
+                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+                <div className="relative flex items-start gap-6">
+                  <div className="text-7xl">🎓</div>
+                  <div className="flex-1">
+                    <h3 className="text-4xl font-black mb-3 group-hover:text-teal-600 transition-colors">
+                      ПІДГОТОВКА ДО НМТ
+                    </h3>
+                    <p className={`${theme.subtext} text-lg mb-4`}>
+                      Повний курс підготовки до НМТ з Історії України
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="px-4 py-2 bg-teal-500/10 rounded-xl text-teal-600 font-bold text-sm">
+                        4 тести
+                      </span>
+                      <span className="px-4 py-2 bg-purple-500/10 rounded-xl text-purple-600 font-bold text-sm">
+                        Рівень: Випускник
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
+                    →
+                  </div>
+                </div>
+              </button>
+
+              {/* 6 Клас Категорія */}
+              <button
+                onClick={() => setSelectedCategory('grade6')}
+                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+                <div className="relative flex items-start gap-6">
+                  <div className="text-7xl">📚</div>
+                  <div className="flex-1">
+                    <h3 className="text-4xl font-black mb-3 group-hover:text-blue-600 transition-colors">
+                      6 КЛАС
+                    </h3>
+                    <p className={`${theme.subtext} text-lg mb-4`}>
+                      Історія України для учнів 6 класу
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="px-4 py-2 bg-blue-500/10 rounded-xl text-blue-600 font-bold text-sm">
+                        Скоро
+                      </span>
+                      <span className="px-4 py-2 bg-green-500/10 rounded-xl text-green-600 font-bold text-sm">
+                        Рівень: Початковий
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
+                    →
+                  </div>
+                </div>
+              </button>
+
+              {/* 9 Клас Категорія */}
+              <button
+                onClick={() => setSelectedCategory('grade9')}
+                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+                <div className="relative flex items-start gap-6">
+                  <div className="text-7xl">📖</div>
+                  <div className="flex-1">
+                    <h3 className="text-4xl font-black mb-3 group-hover:text-orange-600 transition-colors">
+                      9 КЛАС
+                    </h3>
+                    <p className={`${theme.subtext} text-lg mb-4`}>
+                      Історія України для учнів 9 класу
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="px-4 py-2 bg-orange-500/10 rounded-xl text-orange-600 font-bold text-sm">
+                        Скоро
+                      </span>
+                      <span className="px-4 py-2 bg-yellow-500/10 rounded-xl text-yellow-600 font-bold text-sm">
+                        Рівень: Середній
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
+                    →
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tests' && selectedCategory === 'nmt' && !selectedTest && (
           <TestSelector
             tests={allTests}
             onSelectTest={handleSelectTest}
+            onBack={handleBackToCategories}
             progress={progress}
             theme={theme}
           />
+        )}
+
+        {activeTab === 'tests' && selectedCategory === 'grade6' && !selectedTest && (
+          <div className="max-w-3xl mx-auto text-center animate-fadeIn">
+            <div className="text-8xl mb-6">🚧</div>
+            <h2 className="text-4xl font-black mb-4">Розділ в розробці</h2>
+            <p className={`${theme.subtext} text-xl mb-8`}>
+              Тести для 6 класу скоро будуть додані
+            </p>
+            <button
+              onClick={handleBackToCategories}
+              className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-bold text-lg hover:bg-teal-700 transition"
+            >
+              Повернутися до категорій
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'tests' && selectedCategory === 'grade9' && !selectedTest && (
+          <div className="max-w-3xl mx-auto text-center animate-fadeIn">
+            <div className="text-8xl mb-6">🚧</div>
+            <h2 className="text-4xl font-black mb-4">Розділ в розробці</h2>
+            <p className={`${theme.subtext} text-xl mb-8`}>
+              Тести для 9 класу скоро будуть додані
+            </p>
+            <button
+              onClick={handleBackToCategories}
+              className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-bold text-lg hover:bg-teal-700 transition"
+            >
+              Повернутися до категорій
+            </button>
+          </div>
         )}
 
         {activeTab === 'tests' && selectedTest && (
