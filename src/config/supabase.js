@@ -1,8 +1,11 @@
 // src/config/supabase.js
 import { createClient } from '@supabase/supabase-js'
 
-// ⚠️ ЗАМІНІТЬ ЦІ ЗНАЧЕННЯ НА ВАШІ!
-const supabaseUrl = 'https://gyzqzztcflscyrtryfky.supabase.co'
-const supabaseAnonKey = 'sb_publishable_1fLXLyvMfHUzWfw85eLxjw_tkFonVjF'
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables!')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
