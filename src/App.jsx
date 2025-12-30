@@ -1,4 +1,4 @@
-// src/App.jsx - З інтеграцією Supabase
+// App.jsx - Головний компонент
 import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
@@ -11,10 +11,8 @@ import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
-import supabaseStorage from './utils/supabaseStorage';
 
-const nmtTests = [test1, test2, test3];
-const grade9Tests = [test4];
+const allTests = [test1, test2, test3, test4];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -23,7 +21,6 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedTest, setSelectedTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -36,54 +33,32 @@ export default function App() {
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
   const theme = getTheme(isDarkMode);
 
-  // Завантаження теми при старті
-  useEffect(() => {
-    const loadTheme = async () => {
-      const result = await supabaseStorage.loadTheme();
-      if (result.success && result.data) {
-        setIsDarkMode(result.data.isDarkMode || false);
-        console.log('✅ Тему завантажено:', result.data.isDarkMode ? 'темна' : 'світла');
-      }
-    };
-    loadTheme();
-  }, []);
-
-  // Збереження теми при зміні
-  useEffect(() => {
-    const saveTheme = async () => {
-      await supabaseStorage.saveTheme(isDarkMode);
-      console.log('✅ Тему збережено:', isDarkMode ? 'темна' : 'світла');
-    };
-    saveTheme();
-  }, [isDarkMode]);
-
-  // Завантаження прогресу користувача з Supabase
+  // Завантаження прогресу користувача
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
-    console.log('📥 Завантаження прогресу з Supabase для:', userEmail);
-    
+    console.log('📥 Завантаження прогресу для:', userEmail);
     try {
-      // Спочатку спробувати міграцію з localStorage
-      await supabaseStorage.migrateFromLocalStorage(userEmail);
-
-      // Завантажити прогрес з Supabase
-      const result = await supabaseStorage.loadProgress(userEmail);
-      
-      if (result.success && result.data) {
-        console.log('✅ Прогрес завантажено з Supabase:', result.data);
+      if (!window.storage) {
+        console.error('❌ Storage API недоступний');
+        return;
+      }
+      const result = await window.storage.get(`progress:${userEmail}`, true);
+      if (result && result.value) {
+        const savedProgress = JSON.parse(result.value);
+        console.log('✅ Прогрес завантажено:', savedProgress);
         
-        // Мерджимо з початковим прогресом (для нових тестів)
+        // ВАЖЛИВО: Мерджимо збережений прогрес з початковим (для нових тестів)
         const mergedProgress = {
-          test1: result.data.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
-          test2: result.data.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
-          test3: result.data.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
-          test4: result.data.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+          test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
+          test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
+          test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
+          test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
         };
         
+        console.log('✅ Прогрес після мерджу:', mergedProgress);
         setProgress(mergedProgress);
       } else {
         console.log('ℹ️ Прогрес не знайдено, використовуємо початковий');
@@ -95,23 +70,17 @@ export default function App() {
     }
   };
 
-  // Збереження прогресу користувача в Supabase
+  // Збереження прогресу користувача
   const saveUserProgress = async (userEmail, progressData) => {
     try {
-      setIsSaving(true);
-      console.log('💾 Збереження прогресу в Supabase...');
-      
-      const result = await supabaseStorage.saveProgress(userEmail, progressData);
-      
-      if (result.success) {
-        console.log('✅ Прогрес збережено в Supabase');
-      } else {
-        console.error('❌ Помилка збереження:', result.error);
+      if (!window.storage) {
+        console.error('❌ Storage API недоступний');
+        return;
       }
+      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
+      console.log('✅ Прогрес збережено для:', userEmail);
     } catch (error) {
       console.error('❌ Помилка збереження прогресу:', error);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -119,24 +88,21 @@ export default function App() {
   useEffect(() => {
     const checkSession = async () => {
       console.log('🔍 Перевірка сесії при завантаженні...');
-      
       try {
-        // Перевірка підключення до Supabase
-        const connectionTest = await supabaseStorage.testConnection();
-        if (!connectionTest.success) {
-          console.error('❌ Не вдалося підключитися до Supabase');
+        if (!window.storage) {
+          console.error('❌ Storage API недоступний!');
           setIsCheckingSession(false);
           return;
         }
+        console.log('✅ Storage API доступний');
         
-        console.log('✅ Supabase підключено успішно');
+        const sessionResult = await window.storage.get('current-session', true);
+        console.log('📦 Результат get сесії:', sessionResult);
         
-        // Завантажити сесію
-        const sessionResult = await supabaseStorage.loadSession('current-session');
-        
-        if (sessionResult.success && sessionResult.data) {
-          console.log('✅ Сесія знайдена');
-          const session = sessionResult.data;
+        if (sessionResult && sessionResult.value) {
+          console.log('✅ Сесія знайдена!');
+          const session = JSON.parse(sessionResult.value);
+          console.log('👤 Email з сесії:', session.email);
           
           const user = users.find(u => u.email === session.email);
           if (user) {
@@ -144,6 +110,8 @@ export default function App() {
             setCurrentUser(user);
             setIsLoggedIn(true);
             await loadUserProgress(user.email);
+          } else {
+            console.log('❌ Користувача не знайдено в базі');
           }
         } else {
           console.log('ℹ️ Сесія не знайдена - потрібен новий логін');
@@ -151,33 +119,30 @@ export default function App() {
       } catch (error) {
         console.error('❌ Помилка перевірки сесії:', error);
       } finally {
+        console.log('✅ Перевірка сесії завершена');
         setIsCheckingSession(false);
       }
     };
-    
     checkSession();
   }, []);
 
   // Автоматичне збереження прогресу кожні 30 секунд
   useEffect(() => {
-    if (isLoggedIn && currentUser && !isSaving) {
+    if (isLoggedIn && currentUser) {
       const interval = setInterval(() => {
         saveUserProgress(currentUser.email, progress);
       }, 30000);
-      
       return () => clearInterval(interval);
     }
-  }, [isLoggedIn, currentUser, progress, isSaving]);
+  }, [isLoggedIn, currentUser, progress]);
 
   // Збереження при закритті вкладки
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (isLoggedIn && currentUser) {
-        // Синхронне збереження перед закриттям
         saveUserProgress(currentUser.email, progress);
       }
     };
-    
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isLoggedIn, currentUser, progress]);
@@ -185,7 +150,6 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     console.log('🔐 Спроба входу для:', email);
-    
     const user = users.find(u => u.email === email && u.password === password);
     
     if (user) {
@@ -193,14 +157,20 @@ export default function App() {
       setIsLoggedIn(true);
       setCurrentUser(user);
       
-      // Зберігаємо сесію в Supabase
-      const sessionResult = await supabaseStorage.saveSession('current-session', {
-        email: user.email,
-        loginTime: new Date().toISOString()
-      });
-      
-      if (sessionResult.success) {
-        console.log('✅ Сесія збережена в Supabase');
+      // Зберігаємо сесію
+      if (window.storage) {
+        try {
+          await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
+          console.log('✅ Сесія збережена для:', user.email);
+          
+          // Перевірка збереження
+          const check = await window.storage.get('current-session', true);
+          console.log('✅ Перевірка: сесія успішно збережена:', check);
+        } catch (error) {
+          console.error('❌ Помилка збереження сесії:', error);
+        }
+      } else {
+        console.error('❌ window.storage недоступний при логіні!');
       }
       
       // Завантажуємо прогрес користувача
@@ -213,16 +183,19 @@ export default function App() {
 
   const handleLogout = async () => {
     console.log('🚪 Вихід з акаунту:', currentUser?.email);
-    
     // Зберігаємо прогрес перед виходом
     if (currentUser) {
       await saveUserProgress(currentUser.email, progress);
     }
-    
     // Видаляємо сесію
-    await supabaseStorage.deleteSession('current-session');
-    console.log('✅ Сесія видалена з Supabase');
-    
+    if (window.storage) {
+      try {
+        await window.storage.delete('current-session', true);
+        console.log('✅ Сесія видалена');
+      } catch (error) {
+        console.error('❌ Помилка видалення сесії:', error);
+      }
+    }
     setIsLoggedIn(false);
     setCurrentUser(null);
     setEmail('');
@@ -242,15 +215,9 @@ export default function App() {
 
   const handleBackToTests = () => {
     setSelectedTest(null);
-    setSelectedCategory(null);
     setCurrentQuestion(0);
     setAnswers({});
     setCheckedQuestions({});
-  };
-
-  const handleBackToCategories = () => {
-    setSelectedTest(null);
-    setSelectedCategory(null);
   };
 
   const handleUpdateProgress = async (testId, questionIndex, isCorrect) => {
@@ -274,7 +241,7 @@ export default function App() {
     
     setProgress(newProgress);
     
-    // Автоматично зберігаємо прогрес в Supabase
+    // Автоматично зберігаємо прогрес
     if (currentUser) {
       await saveUserProgress(currentUser.email, newProgress);
     }
@@ -286,7 +253,6 @@ export default function App() {
         <div className="text-center">
           <div className="text-8xl mb-4 animate-pulse">⛵</div>
           <div className="text-2xl font-black text-teal-600">Завантаження...</div>
-          <p className="text-sm text-gray-500 mt-2">Підключення до Supabase</p>
         </div>
       </div>
     );
@@ -318,144 +284,11 @@ export default function App() {
         theme={theme}
       />
 
-      {/* Індикатор збереження */}
-      {isSaving && (
-        <div className="fixed top-20 right-6 bg-teal-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
-          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-          <span className="text-sm font-semibold">Збереження...</span>
-        </div>
-      )}
-
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {activeTab === 'tests' && !selectedCategory && !selectedTest && (
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl font-black mb-4 text-center">Оберіть категорію</h1>
-            <p className={`text-center ${theme.subtext} mb-16 text-xl`}>
-              Виберіть рівень підготовки
-            </p>
-
-            <div className="grid gap-6">
-              <button
-                onClick={() => setSelectedCategory('nmt')}
-                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-                <div className="relative flex items-start gap-6">
-                  <div className="text-7xl">🎓</div>
-                  <div className="flex-1">
-                    <h3 className="text-4xl font-black mb-3 group-hover:text-teal-600 transition-colors">
-                      ПІДГОТОВКА ДО НМТ
-                    </h3>
-                    <p className={`${theme.subtext} text-lg mb-4`}>
-                      Повний курс підготовки до НМТ з Історії України
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <span className="px-4 py-2 bg-teal-500/10 rounded-xl text-teal-600 font-bold text-sm">
-                        3 тести
-                      </span>
-                      <span className="px-4 py-2 bg-purple-500/10 rounded-xl text-purple-600 font-bold text-sm">
-                        Рівень: Випускник
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
-                    →
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setSelectedCategory('grade6')}
-                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-                <div className="relative flex items-start gap-6">
-                  <div className="text-7xl">📚</div>
-                  <div className="flex-1">
-                    <h3 className="text-4xl font-black mb-3 group-hover:text-blue-600 transition-colors">
-                      6 КЛАС
-                    </h3>
-                    <p className={`${theme.subtext} text-lg mb-4`}>
-                      Історія України для учнів 6 класу
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <span className="px-4 py-2 bg-blue-500/10 rounded-xl text-blue-600 font-bold text-sm">
-                        Скоро
-                      </span>
-                      <span className="px-4 py-2 bg-green-500/10 rounded-xl text-green-600 font-bold text-sm">
-                        Рівень: Початковий
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
-                    →
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setSelectedCategory('grade9')}
-                className={`${theme.card} p-10 rounded-3xl border-2 text-left transition-all hover:scale-[1.02] hover:shadow-2xl group relative overflow-hidden`}
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-                <div className="relative flex items-start gap-6">
-                  <div className="text-7xl">📖</div>
-                  <div className="flex-1">
-                    <h3 className="text-4xl font-black mb-3 group-hover:text-orange-600 transition-colors">
-                      9 КЛАС
-                    </h3>
-                    <p className={`${theme.subtext} text-lg mb-4`}>
-                      Історія України для учнів 9 класу
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <span className="px-4 py-2 bg-orange-500/10 rounded-xl text-orange-600 font-bold text-sm">
-                        1 тест
-                      </span>
-                      <span className="px-4 py-2 bg-yellow-500/10 rounded-xl text-yellow-600 font-bold text-sm">
-                        Рівень: Середній
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity text-4xl">
-                    →
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'tests' && selectedCategory === 'nmt' && !selectedTest && (
+        {activeTab === 'tests' && !selectedTest && (
           <TestSelector
-            tests={nmtTests}
+            tests={allTests}
             onSelectTest={handleSelectTest}
-            onBack={handleBackToCategories}
-            progress={progress}
-            theme={theme}
-          />
-        )}
-
-        {activeTab === 'tests' && selectedCategory === 'grade6' && !selectedTest && (
-          <div className="max-w-3xl mx-auto text-center animate-fadeIn">
-            <div className="text-8xl mb-6">🚧</div>
-            <h2 className="text-4xl font-black mb-4">Розділ в розробці</h2>
-            <p className={`${theme.subtext} text-xl mb-8`}>
-              Тести для 6 класу скоро будуть додані
-            </p>
-            <button
-              onClick={handleBackToCategories}
-              className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-bold text-lg hover:bg-teal-700 transition"
-            >
-              Повернутися до категорій
-            </button>
-          </div>
-        )}
-
-        {activeTab === 'tests' && selectedCategory === 'grade9' && !selectedTest && (
-          <TestSelector
-            tests={grade9Tests}
-            onSelectTest={handleSelectTest}
-            onBack={handleBackToCategories}
             progress={progress}
             theme={theme}
           />
@@ -479,7 +312,7 @@ export default function App() {
         {activeTab === 'profile' && (
           <Profile
             user={currentUser}
-            tests={[...nmtTests, ...grade9Tests]}
+            tests={allTests}
             progress={progress}
             theme={theme}
           />
@@ -488,14 +321,9 @@ export default function App() {
         {activeTab === 'about' && (
           <div className="max-w-3xl mx-auto text-center animate-slideIn">
             <h1 className="text-5xl font-black mb-8 italic">НМТ ЕКСПРЕС 2025</h1>
-            <p className="text-2xl opacity-50 mb-6">
+            <p className="text-2xl opacity-50">
               Найкращий симулятор тестів з історії. З кожним правильним хрестиком ти стаєш ближчим до 200 балів.
             </p>
-            <div className="bg-teal-500/10 border-2 border-teal-500/30 rounded-2xl p-6 mt-8">
-              <p className="text-sm text-teal-600 font-semibold">
-                🗄️ Powered by Supabase — ваш прогрес зберігається в хмарі!
-              </p>
-            </div>
           </div>
         )}
       </main>
