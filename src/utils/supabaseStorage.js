@@ -150,17 +150,36 @@ class SupabaseStorage {
 
   /**
    * Зберегти налаштування теми
-   */
-  async saveTheme(isDarkMode) {
-    try {
-      // Зберігаємо тему в localStorage (не потребує БД)
+ */
+async saveTheme(isDarkMode) {
+  try {
+    if (typeof window !== 'undefined') { // Додайте цю перевірку
       localStorage.setItem('theme-mode', JSON.stringify({ isDarkMode }))
       return { success: true }
-    } catch (error) {
-      console.error('❌ Error saving theme:', error)
-      return { success: false }
     }
+  } catch (error) {
+    console.error('❌ Error saving theme:', error)
+    return { success: false }
   }
+}
+
+/**
+ * Завантажити налаштування теми
+ */
+async loadTheme() {
+  try {
+    if (typeof window !== 'undefined') { // Додайте цю перевірку
+      const theme = localStorage.getItem('theme-mode')
+      if (theme) {
+        return { success: true, data: JSON.parse(theme) }
+      }
+    }
+    return { success: true, data: null }
+  } catch (error) {
+    console.error('❌ Error loading theme:', error)
+    return { success: false, data: null }
+  }
+}
 
   /**
    * Завантажити налаштування теми
