@@ -17,24 +17,21 @@ class ProgressService {
       
       const { data, error } = await supabase
         .from('user_progress')
-        .select('*')
+        .select('progress_data')
         .eq('user_email', userEmail)
-        .single();
+        .maybeSingle(); // Використовуємо maybeSingle замість single
       
       if (error) {
-        // Якщо запис не знайдено - це нормально (новий користувач)
-        if (error.code === 'PGRST116') {
-          console.log('ℹ️ Прогрес не знайдено, створюємо новий профіль');
-          return null;
-        }
+        console.error('❌ Помилка при завантаженні:', error);
         throw error;
       }
       
       if (data && data.progress_data) {
-        console.log('✅ Прогрес завантажено:', data.progress_data);
+        console.log('✅ Прогрес завантажено для', userEmail, ':', data.progress_data);
         return data.progress_data;
       }
       
+      console.log('ℹ️ Прогрес не знайдено для', userEmail, ', створюємо новий профіль');
       return null;
       
     } catch (error) {
@@ -52,42 +49,29 @@ class ProgressService {
   async saveProgress(userEmail, progressData) {
     try {
       console.log('💾 Збереження прогресу для:', userEmail);
+      console.log('📊 Дані для збереження:', progressData);
       
-      // Перевіряємо чи існує запис
-      const { data: existing } = await supabase
+      // Використовуємо upsert для автоматичного створення або оновлення
+      const { data, error } = await supabase
         .from('user_progress')
-        .select('id')
-        .eq('user_email', userEmail)
-        .single();
-      
-      if (existing) {
-        // Оновлюємо існуючий запис
-        const { error } = await supabase
-          .from('user_progress')
-          .update({
-            progress_data: progressData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_email', userEmail);
-        
-        if (error) throw error;
-        console.log('✅ Прогрес оновлено');
-        
-      } else {
-        // Створюємо новий запис
-        const { error } = await supabase
-          .from('user_progress')
-          .insert({
+        .upsert(
+          {
             user_email: userEmail,
             progress_data: progressData,
-            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          });
-        
-        if (error) throw error;
-        console.log('✅ Прогрес створено');
+          },
+          {
+            onConflict: 'user_email', // Оновлювати якщо email вже існує
+            returning: 'minimal' // Не повертати дані для швидкості
+          }
+        );
+      
+      if (error) {
+        console.error('❌ Помилка при збереженні:', error);
+        throw error;
       }
       
+      console.log('✅ Прогрес успішно збережено для:', userEmail);
       return true;
       
     } catch (error) {
