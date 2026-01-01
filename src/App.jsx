@@ -1,4 +1,4 @@
-// App.jsx - Головний компонент
+// App.jsx - Головний компонент з Supabase інтеграцією
 import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
@@ -11,6 +11,8 @@ import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
+import progressService from './services/ProgressService';
+import { testConnection } from './config/supabase';
 
 const allTests = [test1, test2, test3, test4];
 
@@ -33,35 +35,64 @@ export default function App() {
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
 
   const theme = getTheme(isDarkMode);
 
-  // Завантаження прогресу користувача
+  // Перевірка з'єднання з Supabase при завантаженні
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      console.log('🔍 Перевірка з\'єднання з Supabase...');
+      const connected = await testConnection();
+      setSupabaseConnected(connected);
+      
+      if (!connected) {
+        console.warn('⚠️ Supabase недоступний. Використовуємо localStorage як fallback.');
+      }
+    };
+    
+    checkSupabaseConnection();
+  }, []);
+
+  // Завантаження прогресу користувача з Supabase
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
     console.log('📥 Завантаження прогресу для:', userEmail);
+    
     try {
-      if (!window.storage) {
-        console.error('❌ Storage API недоступний');
-        return;
-      }
-      const result = await window.storage.get(`progress:${userEmail}`, true);
-      if (result && result.value) {
-        const savedProgress = JSON.parse(result.value);
-        console.log('✅ Прогрес завантажено:', savedProgress);
+      // Спроба завантажити з Supabase
+      if (supabaseConnected) {
+        const savedProgress = await progressService.loadProgress(userEmail);
         
-        // ВАЖЛИВО: Мерджимо збережений прогрес з початковим (для нових тестів)
-        const mergedProgress = {
-          test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
-          test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
-          test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
-          test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
-        };
-        
-        console.log('✅ Прогрес після мерджу:', mergedProgress);
-        setProgress(mergedProgress);
+        if (savedProgress) {
+          // Мерджимо збережений прогрес з початковим (для нових тестів)
+          const mergedProgress = {
+            test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
+            test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
+            test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
+            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+          };
+          
+          console.log('✅ Прогрес завантажено з Supabase:', mergedProgress);
+          setProgress(mergedProgress);
+        } else {
+          console.log('ℹ️ Прогрес не знайдено в Supabase, використовуємо початковий');
+        }
       } else {
-        console.log('ℹ️ Прогрес не знайдено, використовуємо початковий');
+        // Fallback на localStorage
+        console.log('⚠️ Використовуємо localStorage як fallback');
+        const localProgress = localStorage.getItem(`progress:${userEmail}`);
+        if (localProgress) {
+          const savedProgress = JSON.parse(localProgress);
+          const mergedProgress = {
+            test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
+            test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
+            test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
+            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+          };
+          console.log('✅ Прогрес завантажено з localStorage:', mergedProgress);
+          setProgress(mergedProgress);
+        }
       }
     } catch (error) {
       console.error('❌ Помилка завантаження прогресу:', error);
@@ -70,17 +101,32 @@ export default function App() {
     }
   };
 
-  // Збереження прогресу користувача
+  // Збереження прогресу користувача в Supabase
   const saveUserProgress = async (userEmail, progressData) => {
     try {
-      if (!window.storage) {
-        console.error('❌ Storage API недоступний');
-        return;
+      if (supabaseConnected) {
+        // Зберігаємо в Supabase
+        const success = await progressService.saveProgress(userEmail, progressData);
+        if (success) {
+          console.log('✅ Прогрес збережено в Supabase для:', userEmail);
+        } else {
+          console.error('❌ Помилка збереження в Supabase, використовуємо localStorage');
+          localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
+        }
+      } else {
+        // Fallback на localStorage
+        localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
+        console.log('✅ Прогрес збережено в localStorage для:', userEmail);
       }
-      await window.storage.set(`progress:${userEmail}`, JSON.stringify(progressData), true);
-      console.log('✅ Прогрес збережено для:', userEmail);
     } catch (error) {
       console.error('❌ Помилка збереження прогресу:', error);
+      // Аварійне збереження в localStorage
+      try {
+        localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
+        console.log('✅ Аварійне збереження в localStorage');
+      } catch (localError) {
+        console.error('❌ Навіть localStorage не працює:', localError);
+      }
     }
   };
 
@@ -88,20 +134,14 @@ export default function App() {
   useEffect(() => {
     const checkSession = async () => {
       console.log('🔍 Перевірка сесії при завантаженні...');
+      
       try {
-        if (!window.storage) {
-          console.error('❌ Storage API недоступний!');
-          setIsCheckingSession(false);
-          return;
-        }
-        console.log('✅ Storage API доступний');
+        // Перевіряємо localStorage для сесії
+        const sessionData = localStorage.getItem('current-session');
         
-        const sessionResult = await window.storage.get('current-session', true);
-        console.log('📦 Результат get сесії:', sessionResult);
-        
-        if (sessionResult && sessionResult.value) {
+        if (sessionData) {
           console.log('✅ Сесія знайдена!');
-          const session = JSON.parse(sessionResult.value);
+          const session = JSON.parse(sessionData);
           console.log('👤 Email з сесії:', session.email);
           
           const user = users.find(u => u.email === session.email);
@@ -123,15 +163,16 @@ export default function App() {
         setIsCheckingSession(false);
       }
     };
+    
     checkSession();
-  }, []);
+  }, [supabaseConnected]);
 
   // Автоматичне збереження прогресу кожні 30 секунд
   useEffect(() => {
     if (isLoggedIn && currentUser) {
       const interval = setInterval(() => {
         saveUserProgress(currentUser.email, progress);
-      }, 30000);
+      }, 30000); // 30 секунд
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser, progress]);
@@ -157,20 +198,12 @@ export default function App() {
       setIsLoggedIn(true);
       setCurrentUser(user);
       
-      // Зберігаємо сесію
-      if (window.storage) {
-        try {
-          await window.storage.set('current-session', JSON.stringify({ email: user.email }), true);
-          console.log('✅ Сесія збережена для:', user.email);
-          
-          // Перевірка збереження
-          const check = await window.storage.get('current-session', true);
-          console.log('✅ Перевірка: сесія успішно збережена:', check);
-        } catch (error) {
-          console.error('❌ Помилка збереження сесії:', error);
-        }
-      } else {
-        console.error('❌ window.storage недоступний при логіні!');
+      // Зберігаємо сесію в localStorage
+      try {
+        localStorage.setItem('current-session', JSON.stringify({ email: user.email }));
+        console.log('✅ Сесія збережена для:', user.email);
+      } catch (error) {
+        console.error('❌ Помилка збереження сесії:', error);
       }
       
       // Завантажуємо прогрес користувача
@@ -188,14 +221,13 @@ export default function App() {
       await saveUserProgress(currentUser.email, progress);
     }
     // Видаляємо сесію
-    if (window.storage) {
-      try {
-        await window.storage.delete('current-session', true);
-        console.log('✅ Сесія видалена');
-      } catch (error) {
-        console.error('❌ Помилка видалення сесії:', error);
-      }
+    try {
+      localStorage.removeItem('current-session');
+      console.log('✅ Сесія видалена');
+    } catch (error) {
+      console.error('❌ Помилка видалення сесії:', error);
     }
+    
     setIsLoggedIn(false);
     setCurrentUser(null);
     setEmail('');
@@ -253,6 +285,11 @@ export default function App() {
         <div className="text-center">
           <div className="text-8xl mb-4 animate-pulse">⛵</div>
           <div className="text-2xl font-black text-teal-600">Завантаження...</div>
+          {!supabaseConnected && (
+            <div className="text-sm text-amber-600 mt-2">
+              ⚠️ Підключення до бази даних...
+            </div>
+          )}
         </div>
       </div>
     );
@@ -283,6 +320,15 @@ export default function App() {
         onLogout={handleLogout}
         theme={theme}
       />
+
+      {/* Індикатор статусу підключення */}
+      {!supabaseConnected && (
+        <div className="max-w-5xl mx-auto px-6 mt-4">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center text-sm">
+            ⚠️ Режим офлайн: дані зберігаються локально
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
         {activeTab === 'tests' && !selectedTest && (
@@ -324,6 +370,11 @@ export default function App() {
             <p className="text-2xl opacity-50">
               Найкращий симулятор тестів з історії. З кожним правильним хрестиком ти стаєш ближчим до 200 балів.
             </p>
+            {supabaseConnected && (
+              <p className="text-sm text-teal-600 mt-4">
+                ✅ Підключено до хмарної бази даних
+              </p>
+            )}
           </div>
         )}
       </main>
