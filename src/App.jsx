@@ -58,6 +58,7 @@ export default function App() {
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
     console.log('📥 Завантаження прогресу для:', userEmail);
+    console.log('👤 Поточний користувач:', currentUser?.email || 'немає');
     
     try {
       // Спроба завантажити з Supabase
@@ -65,6 +66,8 @@ export default function App() {
         const savedProgress = await progressService.loadProgress(userEmail);
         
         if (savedProgress) {
+          console.log('📦 Отримано прогрес з Supabase:', savedProgress);
+          
           // Мерджимо збережений прогрес з початковим (для нових тестів)
           const mergedProgress = {
             test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
@@ -73,10 +76,19 @@ export default function App() {
             test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
           };
           
-          console.log('✅ Прогрес завантажено з Supabase:', mergedProgress);
+          console.log('✅ Прогрес завантажено з Supabase для', userEmail, ':', mergedProgress);
           setProgress(mergedProgress);
         } else {
-          console.log('ℹ️ Прогрес не знайдено в Supabase, використовуємо початковий');
+          console.log('ℹ️ Прогрес не знайдено в Supabase для', userEmail, ', використовуємо початковий');
+          // Встановлюємо початковий прогрес
+          const initialProgress = {
+            test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
+            test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
+            test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
+            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+          };
+          console.log('📝 Встановлюємо початковий прогрес:', initialProgress);
+          setProgress(initialProgress);
         }
       } else {
         // Fallback на localStorage
@@ -92,6 +104,16 @@ export default function App() {
           };
           console.log('✅ Прогрес завантажено з localStorage:', mergedProgress);
           setProgress(mergedProgress);
+        } else {
+          // Початковий прогрес
+          const initialProgress = {
+            test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
+            test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
+            test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
+            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+          };
+          console.log('📝 Встановлюємо початковий прогрес (localStorage):', initialProgress);
+          setProgress(initialProgress);
         }
       }
     } catch (error) {
@@ -195,8 +217,22 @@ export default function App() {
     
     if (user) {
       console.log('✅ Логін успішний для:', user.name);
-      setIsLoggedIn(true);
+      
+      // ВАЖЛИВО: Спочатку скидаємо весь state до початкового
+      setProgress({
+        test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
+        test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
+        test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
+        test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+      });
+      setAnswers({});
+      setCheckedQuestions({});
+      setSelectedTest(null);
+      setCurrentQuestion(0);
+      
+      // Потім встановлюємо користувача
       setCurrentUser(user);
+      setIsLoggedIn(true);
       
       // Зберігаємо сесію в localStorage
       try {
@@ -206,7 +242,7 @@ export default function App() {
         console.error('❌ Помилка збереження сесії:', error);
       }
       
-      // Завантажуємо прогрес користувача
+      // Завантажуємо прогрес ЦЬОГО користувача
       await loadUserProgress(user.email);
     } else {
       console.log('❌ Невірний логін або пароль');
@@ -216,18 +252,13 @@ export default function App() {
 
   const handleLogout = async () => {
     console.log('🚪 Вихід з акаунту:', currentUser?.email);
+    
     // Зберігаємо прогрес перед виходом
     if (currentUser) {
       await saveUserProgress(currentUser.email, progress);
     }
-    // Видаляємо сесію
-    try {
-      localStorage.removeItem('current-session');
-      console.log('✅ Сесія видалена');
-    } catch (error) {
-      console.error('❌ Помилка видалення сесії:', error);
-    }
     
+    // Повне очищення state
     setIsLoggedIn(false);
     setCurrentUser(null);
     setEmail('');
@@ -236,6 +267,22 @@ export default function App() {
     setCurrentQuestion(0);
     setAnswers({});
     setCheckedQuestions({});
+    
+    // ВАЖЛИВО: Скидаємо прогрес до початкового
+    setProgress({
+      test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
+      test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
+      test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
+      test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+    });
+    
+    // Видаляємо сесію
+    try {
+      localStorage.removeItem('current-session');
+      console.log('✅ Сесія видалена');
+    } catch (error) {
+      console.error('❌ Помилка видалення сесії:', error);
+    }
   };
 
   const handleSelectTest = (test) => {
