@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
+import CategorySelector from './components/CategorySelector';
 import TestSelector from './components/TestSelector';
 import TestView from './components/TestView';
 import Profile from './components/Profile';
@@ -16,6 +17,24 @@ import { testConnection } from './config/supabase';
 
 const allTests = [test1, test2, test3, test4];
 
+// Категорії тестів
+const testCategories = [
+  {
+    id: 'nmt',
+    title: 'Підготовка до НМТ',
+    description: 'Повторення всіх тем для НМТ з Історії України',
+    icon: '🎓',
+    tests: [test1, test2, test3]
+  },
+  {
+    id: 'grade9',
+    title: '9 клас',
+    description: 'Матеріали для учнів 9 класу',
+    icon: '📚',
+    tests: [test4]
+  }
+];
+
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,6 +42,7 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
+  const [selectedCategory, setSelectedCategory] = useState(null); // Нова змінна для категорії
   const [selectedTest, setSelectedTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -227,6 +247,7 @@ export default function App() {
       });
       setAnswers({});
       setCheckedQuestions({});
+      setSelectedCategory(null);
       setSelectedTest(null);
       setCurrentQuestion(0);
       
@@ -263,6 +284,7 @@ export default function App() {
     setCurrentUser(null);
     setEmail('');
     setPassword('');
+    setSelectedCategory(null);
     setSelectedTest(null);
     setCurrentQuestion(0);
     setAnswers({});
@@ -285,6 +307,10 @@ export default function App() {
     }
   };
 
+  const handleSelectCategory = (category) => {
+    setSelectedCategory(category);
+  };
+
   const handleSelectTest = (test) => {
     setSelectedTest(test);
     setCurrentQuestion(0);
@@ -293,6 +319,14 @@ export default function App() {
   };
 
   const handleBackToTests = () => {
+    setSelectedTest(null);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setCheckedQuestions({});
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null);
     setSelectedTest(null);
     setCurrentQuestion(0);
     setAnswers({});
@@ -378,15 +412,27 @@ export default function App() {
       )}
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {activeTab === 'tests' && !selectedTest && (
+        {/* Вибір категорії */}
+        {activeTab === 'tests' && !selectedCategory && !selectedTest && (
+          <CategorySelector
+            categories={testCategories}
+            onSelectCategory={handleSelectCategory}
+            theme={theme}
+          />
+        )}
+
+        {/* Вибір тесту в категорії */}
+        {activeTab === 'tests' && selectedCategory && !selectedTest && (
           <TestSelector
-            tests={allTests}
+            tests={selectedCategory.tests}
             onSelectTest={handleSelectTest}
+            onBack={handleBackToCategories}
             progress={progress}
             theme={theme}
           />
         )}
 
+        {/* Проходження тесту */}
         {activeTab === 'tests' && selectedTest && (
           <TestView
             currentTest={selectedTest}
