@@ -6,6 +6,7 @@ import CategorySelector from './components/CategorySelector';
 import TestSelector from './components/TestSelector';
 import TestView from './components/TestView';
 import Profile from './components/Profile';
+import AdminPanel from './components/AdminPanel';
 import { getTheme } from './config/theme';
 import { users } from './data/users';
 import { test1 } from './data/test1';
@@ -47,6 +48,7 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [checkedQuestions, setCheckedQuestions] = useState({});
+  const [enabledCategories, setEnabledCategories] = useState(['nmt', 'grade9']); // Увімкнені категорії
   const [progress, setProgress] = useState({
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
@@ -333,6 +335,18 @@ export default function App() {
     setCheckedQuestions({});
   };
 
+  const handleToggleCategory = (categoryId) => {
+    setEnabledCategories(prev => {
+      if (prev.includes(categoryId)) {
+        // Вимикаємо категорію
+        return prev.filter(id => id !== categoryId);
+      } else {
+        // Увімкнемо категорію
+        return [...prev, categoryId];
+      }
+    });
+  };
+
   const handleUpdateProgress = async (testId, questionIndex, isCorrect) => {
     const newProgress = { ...progress };
     const testProgress = newProgress[testId];
@@ -400,6 +414,7 @@ export default function App() {
         setIsDarkMode={setIsDarkMode}
         onLogout={handleLogout}
         theme={theme}
+        currentUser={currentUser}
       />
 
       {/* Індикатор статусу підключення */}
@@ -412,10 +427,21 @@ export default function App() {
       )}
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {/* Вибір категорії */}
+        {/* АДМІН-ПАНЕЛЬ (тільки для адмінів) */}
+        {activeTab === 'admin' && currentUser?.role === 'admin' && (
+          <AdminPanel
+            theme={theme}
+            testCategories={testCategories}
+            enabledCategories={enabledCategories}
+            onToggleCategory={handleToggleCategory}
+            allTests={allTests}
+          />
+        )}
+
+        {/* Вибір категорії (тільки увімкнені) */}
         {activeTab === 'tests' && !selectedCategory && !selectedTest && (
           <CategorySelector
-            categories={testCategories}
+            categories={testCategories.filter(cat => enabledCategories.includes(cat.id))}
             onSelectCategory={handleSelectCategory}
             theme={theme}
           />
