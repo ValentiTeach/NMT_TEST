@@ -14,6 +14,7 @@ import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
 import progressService from './services/ProgressService';
+import userPermissionsService from './services/UserPermissionsService';
 import { testConnection } from './config/supabase';
 
 const allTests = [test1, test2, test3, test4];
@@ -49,6 +50,7 @@ export default function App() {
   const [answers, setAnswers] = useState({});
   const [checkedQuestions, setCheckedQuestions] = useState({});
   const [enabledCategories, setEnabledCategories] = useState(['nmt', 'grade9']); // Увімкнені категорії
+  const [userAllowedCategories, setUserAllowedCategories] = useState([]); // Персональні дозволи користувача
   const [progress, setProgress] = useState({
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
@@ -174,6 +176,39 @@ export default function App() {
     }
   };
 
+  // Завантаження персональних дозволів користувача
+  const loadUserPermissions = async (userEmail) => {
+    try {
+      console.log('🔐 Завантаження дозволів для:', userEmail);
+      
+      if (supabaseConnected) {
+        const permissions = await userPermissionsService.loadPermissions(userEmail);
+        
+        if (permissions && permissions.length > 0) {
+          console.log('✅ Персональні дозволи завантажено:', permissions);
+          setUserAllowedCategories(permissions);
+        } else {
+          // Використовуємо стандартні дозволи з users.js
+          const user = users.find(u => u.email === userEmail);
+          const defaultPermissions = user?.allowedCategories || ['nmt', 'grade9'];
+          console.log('ℹ️ Використовуємо стандартні дозволи:', defaultPermissions);
+          setUserAllowedCategories(defaultPermissions);
+        }
+      } else {
+        // Fallback на стандартні дозволи
+        const user = users.find(u => u.email === userEmail);
+        const defaultPermissions = user?.allowedCategories || ['nmt', 'grade9'];
+        console.log('⚠️ Offline: використовуємо стандартні дозволи:', defaultPermissions);
+        setUserAllowedCategories(defaultPermissions);
+      }
+    } catch (error) {
+      console.error('❌ Помилка завантаження дозволів:', error);
+      // Fallback на стандартні
+      const user = users.find(u => u.email === userEmail);
+      setUserAllowedCategories(user?.allowedCategories || ['nmt', 'grade9']);
+    }
+  };
+
   // Перевірка сесії при завантаженні
   useEffect(() => {
     const checkSession = async () => {
@@ -194,6 +229,7 @@ export default function App() {
             setCurrentUser(user);
             setIsLoggedIn(true);
             await loadUserProgress(user.email);
+            await loadUserPermissions(user.email);
           } else {
             console.log('❌ Користувача не знайдено в базі');
           }
@@ -267,6 +303,9 @@ export default function App() {
       
       // Завантажуємо прогрес ЦЬОГО користувача
       await loadUserProgress(user.email);
+      
+      // Завантажуємо персональні дозволи
+      await loadUserPermissions(user.email);
     } else {
       console.log('❌ Невірний логін або пароль');
       alert('Невірний логін або пароль!\n\nЗверніться до адміністратора для отримання доступу.');
@@ -438,10 +477,16 @@ export default function App() {
           />
         )}
 
-        {/* Вибір категорії (тільки увімкнені) */}
+        {/* Вибір категорії (фільтруємо за глобальними та персональними дозволами) */}
         {activeTab === 'tests' && !selectedCategory && !selectedTest && (
           <CategorySelector
-            categories={testCategories.filter(cat => enabledCategories.includes(cat.id))}
+            categories={testCategories.filter(cat => {
+              // Адмін бачить все
+              if (currentUser?.role === 'admin') return true;
+              
+              // Категорія має бути і глобально увімкнена, і дозволена особисто
+              return enabledCategories.includes(cat.id) && userAllowedCategories.includes(cat.id);
+            })}
             onSelectCategory={handleSelectCategory}
             theme={theme}
           />
