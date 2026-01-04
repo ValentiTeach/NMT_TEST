@@ -106,6 +106,41 @@ class ProgressService {
   }
 
   /**
+   * Анулювання прогресу користувача (скидання до нуля)
+   * @param {string} userEmail - Email користувача
+   * @param {Object} initialProgress - Початковий прогрес (пустий)
+   * @returns {Promise<boolean>} Успішність операції
+   */
+  async resetProgress(userEmail, initialProgress) {
+    try {
+      console.log('🔄 Анулювання прогресу для:', userEmail);
+      
+      // Встановлюємо пустий прогрес
+      const { error } = await supabase
+        .from('user_progress')
+        .upsert(
+          {
+            user_email: userEmail,
+            progress_data: initialProgress,
+            updated_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'user_email'
+          }
+        );
+      
+      if (error) throw error;
+      
+      console.log('✅ Прогрес анульовано (скинуто до нуля)');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Помилка анулювання прогресу:', error);
+      return false;
+    }
+  }
+
+  /**
    * Отримання статистики всіх користувачів (для адміністратора)
    * @returns {Promise<Array>} Масив користувачів з прогресом
    */
