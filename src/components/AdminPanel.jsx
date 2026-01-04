@@ -1,7 +1,9 @@
 // components/AdminPanel.jsx - Адмін-панель
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, Eye, EyeOff, TrendingUp, Award, CheckCircle } from 'lucide-react';
+import { Users, Settings, Eye, EyeOff, TrendingUp, Award, CheckCircle, UserCog, Shield } from 'lucide-react';
 import progressService from '../services/ProgressService';
+import userPermissionsService from '../services/UserPermissionsService';
+import { users } from '../data/users';
 
 export default function AdminPanel({ 
   theme, 
@@ -12,14 +14,73 @@ export default function AdminPanel({
 }) {
   const [activeAdminTab, setActiveAdminTab] = useState('categories');
   const [usersStats, setUsersStats] = useState([]);
+  const [userPermissions, setUserPermissions] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Завантаження статистики користувачів
   useEffect(() => {
     if (activeAdminTab === 'users') {
       loadUsersStatistics();
+    } else if (activeAdminTab === 'permissions') {
+      loadUserPermissions();
     }
   }, [activeAdminTab]);
+
+  const loadUserPermissions = async () => {
+    setIsLoading(true);
+    try {
+      const allPermissions = await userPermissionsService.getAllUsersPermissions();
+      
+      // Створюємо об'єкт з дозволами
+      const permissionsMap = {};
+      allPermissions.forEach(perm => {
+        permissionsMap[perm.user_email] = perm.allowed_categories || [];
+      });
+      
+      // Додаємо стандартні дозволи для користувачів без записів
+      users.filter(u => u.role === 'student').forEach(user => {
+        if (!permissionsMap[user.email]) {
+          permissionsMap[user.email] = user.allowedCategories || ['nmt', 'grade9'];
+        }
+      });
+      
+      console.log('✅ Дозволи завантажено:', permissionsMap);
+      setUserPermissions(permissionsMap);
+    } catch (error) {
+      console.error('❌ Помилка завантаження дозволів:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleUserPermission = async (userEmail, categoryId) => {
+    const currentPermissions = userPermissions[userEmail] || [];
+    let newPermissions;
+    
+    if (currentPermissions.includes(categoryId)) {
+      // Видаляємо доступ
+      newPermissions = currentPermissions.filter(id => id !== categoryId);
+    } else {
+      // Додаємо доступ
+      newPermissions = [...currentPermissions, categoryId];
+    }
+    
+    // Оновлюємо локально
+    setUserPermissions(prev => ({
+      ...prev,
+      [userEmail]: newPermissions
+    }));
+    
+    // Зберігаємо в базу
+    const success = await userPermissionsService.savePermissions(userEmail, newPermissions);
+    if (success) {
+      console.log('✅ Дозволи оновлено для', userEmail);
+    } else {
+      console.error('❌ Не вдалося оновити дозволи');
+      // Відкат змін
+      await loadUserPermissions();
+    }
+  };
 
   const loadUsersStatistics = async () => {
     setIsLoading(true);
@@ -89,19 +150,31 @@ export default function AdminPanel({
           }`}
         >
           <Settings size={20} />
-          Управління категоріями
+          Глобальні категорії
+        </button>
+        
+        <button
+          onClick={() => setActiveAdminTab('permissions')}
+          className={`px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 ${
+            activeAdminTab === 'permissions'
+              ? 'bg-amber-600 text-white shadow-lg'
+              : `${theme.card} border opacity-60 hover:opacity-100`
+          }`}
+        >
+          <UserCog size={20} />
+          Керування доступом
         </button>
         
         <button
           onClick={() => setActiveAdminTab('users')}
           className={`px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 ${
             activeAdminTab === 'users'
-              ? 'bg-teal-600 text-white shadow-lg'
+              ? 'bg-blue-600 text-white shadow-lg'
               : `${theme.card} border opacity-60 hover:opacity-100`
           }`}
         >
           <Users size={20} />
-          Статистика користувачів
+          Статистика
         </button>
       </div>
 
@@ -165,6 +238,106 @@ export default function AdminPanel({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Керування персональними дозволами */}
+      {activeAdminTab === 'permissions' && (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black">Персональні дозволи</h2>
+              <p className={`${theme.subtext} text-sm mt-1`}>
+                Надайте або заберіть доступ до категорій для окремих учнів
+              </p>
+            </div>
+            <button
+              onClick={loadUserPermissions}
+              disabled={isLoading}
+              className="px-4 py-2 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition disabled:opacity-50"
+            >
+              {isLoading ? 'Завантаження...' : '🔄 Оновити'}
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4 animate-pulse">🔐</div>
+              <p className={theme.subtext}>Завантаження налаштувань...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {users.filter(u => u.role === 'student').map(user => {
+                const permissions = userPermissions[user.email] || user.allowedCategories || [];
+                
+                return (
+                  <div
+                    key={user.email}
+                    className={`${theme.card} p-6 rounded-2xl border transition-all`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="text-4xl">{user.avatar}</div>
+                        <div>
+                          <div className="font-bold text-xl">{user.name}</div>
+                          <div className={`${theme.subtext} text-sm`}>{user.email}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Shield className="text-amber-600" size={20} />
+                        <span className={theme.subtext}>
+                          {permissions.length} {permissions.length === 1 ? 'категорія' : 'категорії'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {testCategories.map(category => {
+                        const hasAccess = permissions.includes(category.id);
+                        
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => toggleUserPermission(user.email, category.id)}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${
+                              hasAccess
+                                ? 'border-teal-500 bg-teal-500/10 hover:bg-teal-500/20'
+                                : 'border-gray-500/20 bg-gray-500/5 hover:bg-gray-500/10 opacity-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="text-3xl">{category.icon}</div>
+                                <div>
+                                  <div className="font-bold">{category.title}</div>
+                                  <div className={`${theme.subtext} text-xs`}>
+                                    {category.tests.length} {category.tests.length === 1 ? 'тест' : 'тести'}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {hasAccess ? (
+                                <Eye className="text-teal-600" size={24} />
+                              ) : (
+                                <EyeOff className="text-gray-400" size={24} />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {permissions.length === 0 && (
+                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-center">
+                        <span className="text-red-600 font-bold">⚠️ Немає доступу до жодної категорії</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
