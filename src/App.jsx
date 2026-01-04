@@ -525,6 +525,8 @@ export default function App() {
             tests={allTests}
             progress={progress}
             theme={theme}
+            userAllowedCategories={userAllowedCategories}
+            testCategories={testCategories}
           />
         )}
 
