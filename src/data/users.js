@@ -5,34 +5,39 @@ export const users = [
     password: '123456',
     name: 'Тарас Шевченко',
     avatar: '📚',
-    role: 'student'
+    role: 'student',
+    allowedCategories: ['nmt', 'grade9'] // Доступ до всіх категорій
   },
   {
     email: 'student@nmt.ua',
     password: 'nmt2025',
     name: 'Іван Франко',
     avatar: '🎓',
-    role: 'student'
+    role: 'student',
+    allowedCategories: ['nmt'] // Тільки підготовка до НМТ
   },
   {
     email: 'vip@history.com',
     password: 'ukraine',
     name: 'Леся Українка',
     avatar: '⭐',
-    role: 'student'
+    role: 'student',
+    allowedCategories: ['nmt', 'grade9'] // Доступ до всіх
   },
   {
     email: 'demo@test.com',
     password: 'demo123',
     name: 'Михайло Грушевський',
     avatar: '🏛️',
-    role: 'student'
+    role: 'student',
+    allowedCategories: ['grade9'] // Тільки 9 клас
   },
   {
     email: 'admin@nmt.ua',
     password: 'Historic_up',
     name: 'Адміністратор',
     avatar: '👑',
-    role: 'admin'
+    role: 'admin',
+    allowedCategories: ['nmt', 'grade9'] // Адмін бачить все
   }
 ];
