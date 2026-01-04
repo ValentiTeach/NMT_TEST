@@ -9,25 +9,25 @@ export const users = [
     allowedCategories: ['nmt', 'grade9'] // Доступ до всіх категорій
   },
   {
-    email: 'student@nmt.ua',
-    password: 'nmt2025',
-    name: 'Іван Франко',
+    email: 'marichka25@nmt.ua',
+    password: 'make21d',
+    name: 'Марічка',
     avatar: '🎓',
     role: 'student',
     allowedCategories: ['nmt'] // Тільки підготовка до НМТ
   },
   {
-    email: 'vip@history.com',
-    password: 'ukraine',
-    name: 'Леся Українка',
+    email: 'khrystha14@nmt.ua',
+    password: 'der8Lk',
+    name: 'Христя',
     avatar: '⭐',
     role: 'student',
     allowedCategories: ['nmt', 'grade9'] // Доступ до всіх
   },
   {
-    email: 'demo@test.com',
-    password: 'demo123',
-    name: 'Михайло Грушевський',
+    email: 'romaNa34@nmt.ua',
+    password: 'uder212',
+    name: 'Романа',
     avatar: '🏛️',
     role: 'student',
     allowedCategories: ['grade9'] // Тільки 9 клас
