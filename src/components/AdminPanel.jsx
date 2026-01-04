@@ -16,6 +16,7 @@ export default function AdminPanel({
   const [usersStats, setUsersStats] = useState([]);
   const [userPermissions, setUserPermissions] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [resetConfirmDialog, setResetConfirmDialog] = useState({ show: false, userEmail: null, userName: null });
 
   // Завантаження статистики користувачів
   useEffect(() => {
@@ -80,6 +81,51 @@ export default function AdminPanel({
       // Відкат змін
       await loadUserPermissions();
     }
+  };
+
+  const handleResetProgressClick = (userEmail, userName) => {
+    // Знаходимо користувача за email щоб отримати правильне ім'я
+    const user = users.find(u => u.email === userEmail);
+    const displayName = user ? user.name : userName;
+    
+    setResetConfirmDialog({
+      show: true,
+      userEmail,
+      userName: displayName
+    });
+  };
+
+  const handleResetProgressConfirm = async () => {
+    const { userEmail } = resetConfirmDialog;
+    
+    // Створюємо початковий (пустий) прогрес
+    const initialProgress = {
+      test1: { completed: 0, total: allTests[0].questions.length, correctAnswers: {} },
+      test2: { completed: 0, total: allTests[1].questions.length, correctAnswers: {} },
+      test3: { completed: 0, total: allTests[2].questions.length, correctAnswers: {} },
+      test4: { completed: 0, total: allTests[3].questions.length, correctAnswers: {} }
+    };
+    
+    console.log('🔄 Анулювання прогресу для:', userEmail);
+    
+    const success = await progressService.resetProgress(userEmail, initialProgress);
+    
+    if (success) {
+      console.log('✅ Прогрес успішно анульовано');
+      // Оновлюємо статистику
+      await loadUsersStatistics();
+      alert(`✅ Прогрес користувача ${resetConfirmDialog.userName} успішно анульовано!`);
+    } else {
+      console.error('❌ Не вдалося анулювати прогрес');
+      alert('❌ Помилка! Не вдалося анулювати прогрес.');
+    }
+    
+    // Закриваємо діалог
+    setResetConfirmDialog({ show: false, userEmail: null, userName: null });
+  };
+
+  const handleResetProgressCancel = () => {
+    setResetConfirmDialog({ show: false, userEmail: null, userName: null });
   };
 
   const loadUsersStatistics = async () => {
@@ -412,13 +458,28 @@ export default function AdminPanel({
                         </div>
                       </div>
                       
-                      <div className="text-right">
-                        <div className="text-3xl font-black text-teal-600">
-                          {user.percentage}%
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-3xl font-black text-teal-600">
+                            {user.percentage}%
+                          </div>
+                          <div className={`${theme.subtext} text-sm`}>
+                            {user.totalCompleted} / {user.totalQuestions}
+                          </div>
                         </div>
-                        <div className={`${theme.subtext} text-sm`}>
-                          {user.totalCompleted} / {user.totalQuestions}
-                        </div>
+                        
+                        {/* Кнопка анулювання прогресу */}
+                        <button
+                          onClick={() => {
+                            const userName = users.find(u => u.email === user.email)?.name || user.email;
+                            handleResetProgressClick(user.email, userName);
+                          }}
+                          className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-bold transition flex items-center gap-2 border border-red-500/30"
+                          title="Анулювати прогрес"
+                        >
+                          <span className="text-xl">🔄</span>
+                          Скинути
+                        </button>
                       </div>
                     </div>
 
@@ -465,6 +526,46 @@ export default function AdminPanel({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Діалог підтвердження анулювання прогресу */}
+      {resetConfirmDialog.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`${theme.card} rounded-3xl p-8 max-w-md w-full border-2 border-red-500/30 shadow-2xl`}>
+            <div className="text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-black mb-4 text-red-600">
+                УВАГА! Незворотна дія!
+              </h3>
+              <p className="text-lg mb-2">
+                Ви впевнені що хочете <strong>анулювати весь прогрес</strong> користувача:
+              </p>
+              <p className="text-xl font-bold mb-6 text-teal-600">
+                {resetConfirmDialog.userName}
+              </p>
+              <div className={`${theme.subtext} text-sm mb-6 p-4 bg-red-500/10 rounded-xl border border-red-500/30`}>
+                <p className="mb-2">🔄 Весь прогрес буде скинуто до 0%</p>
+                <p className="mb-2">📝 Всі відповіді будуть видалені</p>
+                <p className="font-bold text-red-600">⚠️ Цю дію НЕМОЖЛИВО відмінити!</p>
+              </div>
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={handleResetProgressCancel}
+                  className="flex-1 px-6 py-3 bg-gray-500 text-white rounded-xl font-bold hover:bg-gray-600 transition"
+                >
+                  ❌ Скасувати
+                </button>
+                <button
+                  onClick={handleResetProgressConfirm}
+                  className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
+                >
+                  ✅ Так, анулювати
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
