@@ -133,16 +133,29 @@ export default function AdminPanel({
     try {
       const allProgress = await progressService.getAllUsersProgress();
       
+      // Створюємо Map для швидкого пошуку прогресу
+      const progressMap = new Map();
+      allProgress.forEach(userProgress => {
+        progressMap.set(userProgress.user_email, userProgress.progress_data || {});
+      });
+      
+      // Беремо всіх студентів з users.js
+      const studentUsers = users.filter(u => u.role === 'student');
+      
       // Обчислюємо статистику для кожного користувача
-      const stats = allProgress.map(userProgress => {
-        const progressData = userProgress.progress_data || {};
+      const stats = studentUsers.map(user => {
+        const progressData = progressMap.get(user.email) || {};
         
         // Підрахунок загального прогресу
         let totalCompleted = 0;
         let totalQuestions = 0;
         
         allTests.forEach(test => {
-          const testProgress = progressData[test.id] || { completed: 0, total: test.questions.length };
+          const testProgress = progressData[test.id] || { 
+            completed: 0, 
+            total: test.questions.length,
+            correctAnswers: {} 
+          };
           totalCompleted += testProgress.completed || 0;
           totalQuestions += testProgress.total || test.questions.length;
         });
@@ -151,13 +164,20 @@ export default function AdminPanel({
           ? Math.round((totalCompleted / totalQuestions) * 100) 
           : 0;
         
+        // Знаходимо запис в базі для отримання дати оновлення
+        const dbRecord = allProgress.find(p => p.user_email === user.email);
+        const lastUpdate = dbRecord 
+          ? new Date(dbRecord.updated_at).toLocaleString('uk-UA')
+          : 'Ще не розпочато';
+        
         return {
-          email: userProgress.user_email,
+          email: user.email,
+          name: user.name,
           progressData: progressData,
           totalCompleted,
           totalQuestions,
           percentage,
-          lastUpdate: new Date(userProgress.updated_at).toLocaleString('uk-UA')
+          lastUpdate
         };
       });
       
@@ -451,8 +471,9 @@ export default function AdminPanel({
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '👤'}
                         </div>
                         <div>
-                          <div className="font-bold text-lg">{user.email}</div>
-                          <div className={`${theme.subtext} text-sm`}>
+                          <div className="font-bold text-lg">{user.name}</div>
+                          <div className={`${theme.subtext} text-sm`}>{user.email}</div>
+                          <div className={`${theme.subtext} text-xs`}>
                             Останнє оновлення: {user.lastUpdate}
                           </div>
                         </div>
