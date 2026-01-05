@@ -8,12 +8,18 @@ export default function SingleQuestion({ question, answers, onAnswer, isChecked 
 
   if (hasOptionImages) {
     // Відображення варіантів з зображеннями (сітка 2x2)
+    // Визначаємо чи це портрети (для кращого відображення)
+    const isPortrait = question.question?.toLowerCase().includes('портрет') || 
+                       question.question?.toLowerCase().includes('фото') ||
+                       question.question?.toLowerCase().includes('світлин') ||
+                       question.question?.toLowerCase().includes('зображен');
+    
     return (
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-4 md:gap-6">
         {question.options.map((opt, i) => {
           const sel = answers?.[0] === i;
           const corr = question.correct === i;
-          let style = `p-4 rounded-2xl border-2 transition-all text-center cursor-pointer `;
+          let style = `p-3 md:p-4 rounded-2xl border-2 transition-all text-center cursor-pointer `;
           
           if (!isChecked) {
             style += sel ? 'border-teal-500 bg-teal-500/10 ring-4 ring-teal-500/20' : 'border-zinc-500/20 hover:border-teal-500/50';
@@ -32,21 +38,23 @@ export default function SingleQuestion({ question, answers, onAnswer, isChecked 
               className={style}
               disabled={isChecked}
             >
-              <div className={`font-black text-2xl mb-3 ${isChecked && corr ? 'text-white' : ''}`}>
+              <div className={`font-black text-xl md:text-2xl mb-2 md:mb-3 ${isChecked && corr ? 'text-white' : ''}`}>
                 {opt}
               </div>
-              <img 
-                src={question.optionImages[i]} 
-                alt={`Варіант ${opt}`} 
-                className="w-full h-48 object-cover rounded-lg"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextElementSibling.style.display = 'flex';
-                }}
-              />
-              {/* Fallback якщо зображення не завантажилось */}
-              <div className="hidden w-full h-48 items-center justify-center bg-zinc-500/10 rounded-lg">
-                <span className="text-6xl opacity-20">🖼️</span>
+              <div className={`relative ${isPortrait ? 'aspect-[3/4]' : 'aspect-square'} w-full overflow-hidden rounded-lg bg-zinc-500/5`}>
+                <img 
+                  src={question.optionImages[i]} 
+                  alt={`Варіант ${opt}`} 
+                  className="absolute inset-0 w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                {/* Fallback якщо зображення не завантажилось */}
+                <div className="hidden absolute inset-0 items-center justify-center bg-zinc-500/10">
+                  <span className="text-5xl md:text-6xl opacity-20">🖼️</span>
+                </div>
               </div>
             </button>
           );
