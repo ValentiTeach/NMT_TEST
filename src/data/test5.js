@@ -34,13 +34,12 @@ export const test5 = {
       id: 4,
       type: 'single',
       question: 'На якому фото зображено будівлю, у зовнішньому вигляді якої можна виявити мотиви й форми українського народного мистецтва?',
-      images: [
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansa_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansb_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansc_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansd_23852.png'
+      options: [
+        { text: 'А', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansa_23852.png' },
+        { text: 'Б', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansb_23852.png' },
+        { text: 'В', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansc_23852.png' },
+        { text: 'Г', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansd_23852.png' }
       ],
-      options: ['А', 'Б', 'В', 'Г'],
       correct: 1,
       explanation: 'Відповідь: Б. Будівля в українському стилі з характерними народними мотивами.'
     },
@@ -158,13 +157,12 @@ export const test5 = {
       id: 18,
       type: 'single',
       question: 'Укажіть пам\'ятку, що є прикладом архітектури модерн:',
-      images: [
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansa_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansb_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansc_23852.png',
-        'https://zno.osvita.ua/doc/images/znotest/238/23852/ansd_23852.png'
+      options: [
+        { text: 'А', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansa_23852.png' },
+        { text: 'Б', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansb_23852.png' },
+        { text: 'В', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansc_23852.png' },
+        { text: 'Г', image: 'https://zno.osvita.ua/doc/images/znotest/238/23852/ansd_23852.png' }
       ],
-      options: ['А', 'Б', 'В', 'Г'],
       correct: 2,
       explanation: 'Відповідь: В. Модерн характеризується плавними лініями, асиметрією та декоративністю.'
     },
@@ -232,13 +230,12 @@ export const test5 = {
       id: 26,
       type: 'single',
       question: 'Укажіть портрет діяча, про якого йдеться: "Значення його мистецтва полягає в тому, що він став основоположником української національної музики"',
-      images: [
-        'https://zno.osvita.ua/doc/images/znotest/138/13835/ansa_13835.jpg',
-        'https://zno.osvita.ua/doc/images/znotest/138/13835/ansb_13835.jpg',
-        'https://zno.osvita.ua/doc/images/znotest/138/13835/ansc_13835.jpg',
-        'https://zno.osvita.ua/doc/images/znotest/138/13835/ansd_13835.jpg'
+      options: [
+        { text: 'А', image: 'https://zno.osvita.ua/doc/images/znotest/138/13835/ansa_13835.jpg' },
+        { text: 'Б', image: 'https://zno.osvita.ua/doc/images/znotest/138/13835/ansb_13835.jpg' },
+        { text: 'В', image: 'https://zno.osvita.ua/doc/images/znotest/138/13835/ansc_13835.jpg' },
+        { text: 'Г', image: 'https://zno.osvita.ua/doc/images/znotest/138/13835/ansd_13835.jpg' }
       ],
-      options: ['А', 'Б', 'В', 'Г'],
       correct: 0,
       explanation: 'Відповідь: А. М. Лисенко - основоположник української класичної музики.'
     },
