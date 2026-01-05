@@ -13,11 +13,12 @@ import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
+import { test5 } from './data/test5'; // ✅ ДОДАНО
 import progressService from './services/ProgressService';
 import userPermissionsService from './services/UserPermissionsService';
 import { testConnection } from './config/supabase';
 
-const allTests = [test1, test2, test3, test4];
+const allTests = [test1, test2, test3, test4, test5]; // ✅ ДОДАНО test5
 
 // Категорії тестів
 const testCategories = [
@@ -26,7 +27,7 @@ const testCategories = [
     title: 'Підготовка до НМТ',
     description: 'Повторення всіх тем для НМТ з Історії України',
     icon: '🎓',
-    tests: [test1, test2, test3]
+    tests: [test1, test2, test3, test5] // ✅ ДОДАНО test5
   },
   {
     id: 'grade9',
@@ -44,18 +45,19 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('tests');
-  const [selectedCategory, setSelectedCategory] = useState(null); // Нова змінна для категорії
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedTest, setSelectedTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [checkedQuestions, setCheckedQuestions] = useState({});
-  const [enabledCategories, setEnabledCategories] = useState(['nmt', 'grade9']); // Увімкнені категорії
-  const [userAllowedCategories, setUserAllowedCategories] = useState([]); // Персональні дозволи користувача
+  const [enabledCategories, setEnabledCategories] = useState(['nmt', 'grade9']);
+  const [userAllowedCategories, setUserAllowedCategories] = useState([]);
   const [progress, setProgress] = useState({
     test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-    test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+    test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
+    test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -92,24 +94,26 @@ export default function App() {
         if (savedProgress) {
           console.log('📦 Отримано прогрес з Supabase:', savedProgress);
           
-          // Мерджимо збережений прогрес з початковим (для нових тестів)
+          // ✅ ОНОВЛЕНО: Мерджимо збережений прогрес з початковим (для нових тестів)
           const mergedProgress = {
             test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
-            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
           };
           
           console.log('✅ Прогрес завантажено з Supabase для', userEmail, ':', mergedProgress);
           setProgress(mergedProgress);
         } else {
           console.log('ℹ️ Прогрес не знайдено в Supabase для', userEmail, ', використовуємо початковий');
-          // Встановлюємо початковий прогрес
+          // ✅ ОНОВЛЕНО: Встановлюємо початковий прогрес
           const initialProgress = {
             test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
+            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
           };
           console.log('📝 Встановлюємо початковий прогрес:', initialProgress);
           setProgress(initialProgress);
@@ -120,21 +124,24 @@ export default function App() {
         const localProgress = localStorage.getItem(`progress:${userEmail}`);
         if (localProgress) {
           const savedProgress = JSON.parse(localProgress);
+          // ✅ ОНОВЛЕНО
           const mergedProgress = {
             test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
-            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} }
+            test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
           };
           console.log('✅ Прогрес завантажено з localStorage:', mergedProgress);
           setProgress(mergedProgress);
         } else {
-          // Початковий прогрес
+          // ✅ ОНОВЛЕНО: Початковий прогрес
           const initialProgress = {
             test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
+            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
           };
           console.log('📝 Встановлюємо початковий прогрес (localStorage):', initialProgress);
           setProgress(initialProgress);
@@ -276,12 +283,13 @@ export default function App() {
     if (user) {
       console.log('✅ Логін успішний для:', user.name);
       
-      // ВАЖЛИВО: Спочатку скидаємо весь state до початкового
+      // ✅ ОНОВЛЕНО: Спочатку скидаємо весь state до початкового
       setProgress({
         test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
         test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
         test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-        test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+        test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
+        test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
       });
       setAnswers({});
       setCheckedQuestions({});
@@ -331,12 +339,13 @@ export default function App() {
     setAnswers({});
     setCheckedQuestions({});
     
-    // ВАЖЛИВО: Скидаємо прогрес до початкового
+    // ✅ ОНОВЛЕНО: Скидаємо прогрес до початкового
     setProgress({
       test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
       test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
       test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-      test4: { completed: 0, total: test4.questions.length, correctAnswers: {} }
+      test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
+      test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
     });
     
     // Видаляємо сесію
