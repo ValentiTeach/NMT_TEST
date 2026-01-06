@@ -1,4 +1,4 @@
-// App.jsx - Головний компонент з Supabase інтеграцією
+// App.jsx - Головний компонент з календарем та збереженням теми
 import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
@@ -7,18 +7,20 @@ import TestSelector from './components/TestSelector';
 import TestView from './components/TestView';
 import Profile from './components/Profile';
 import AdminPanel from './components/AdminPanel';
+import Calendar from './components/Calendar';
 import { getTheme } from './config/theme';
 import { users } from './data/users';
 import { test1 } from './data/test1';
 import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
-import { test5 } from './data/test5'; // ✅ ДОДАНО
+import { test5 } from './data/test5';
 import progressService from './services/ProgressService';
 import userPermissionsService from './services/UserPermissionsService';
+import calendarService from './services/CalendarService';
 import { testConnection } from './config/supabase';
 
-const allTests = [test1, test2, test3, test4, test5]; // ✅ ДОДАНО test5
+const allTests = [test1, test2, test3, test4, test5];
 
 // Категорії тестів
 const testCategories = [
@@ -27,7 +29,7 @@ const testCategories = [
     title: 'Підготовка до НМТ',
     description: 'Повторення всіх тем для НМТ з Історії України',
     icon: '🎓',
-    tests: [test1, test2, test3, test5] // ✅ ДОДАНО test5
+    tests: [test1, test2, test3, test5]
   },
   {
     id: 'grade9',
@@ -39,7 +41,19 @@ const testCategories = [
 ];
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // ===== ТЕМА (з збереженням) =====
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Завантажуємо збережену тему
+    const saved = localStorage.getItem('nmt-theme');
+    return saved ? saved === 'dark' : false;
+  });
+
+  // Зберігаємо тему при зміні
+  useEffect(() => {
+    localStorage.setItem('nmt-theme', isDarkMode ? 'dark' : 'light');
+    console.log('🎨 Тема збережена:', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -57,11 +71,15 @@ export default function App() {
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
     test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-    test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+    test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [supabaseConnected, setSupabaseConnected] = useState(false);
+
+  // ===== КАЛЕНДАР =====
+  const [lessons, setLessons] = useState([]);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(false);
 
   const theme = getTheme(isDarkMode);
 
@@ -80,71 +98,81 @@ export default function App() {
     checkSupabaseConnection();
   }, []);
 
+  // Завантаження уроків
+  const loadLessons = async () => {
+    if (!supabaseConnected) return;
+    
+    setIsLoadingLessons(true);
+    try {
+      const data = await calendarService.loadLessons();
+      
+      // Конвертуємо формат з БД у формат компонента
+      const formattedLessons = data.map(lesson => ({
+        id: lesson.id,
+        title: lesson.title,
+        studentEmail: lesson.student_email,
+        date: lesson.date,
+        time: lesson.time,
+        notes: lesson.notes || '',
+        createdBy: lesson.created_by,
+        createdAt: lesson.created_at
+      }));
+      
+      setLessons(formattedLessons);
+      console.log('✅ Завантажено уроків:', formattedLessons.length);
+    } catch (error) {
+      console.error('❌ Помилка завантаження уроків:', error);
+    } finally {
+      setIsLoadingLessons(false);
+    }
+  };
+
   // Завантаження прогресу користувача з Supabase
   const loadUserProgress = async (userEmail) => {
     setIsLoadingProgress(true);
     console.log('📥 Завантаження прогресу для:', userEmail);
-    console.log('👤 Поточний користувач:', currentUser?.email || 'немає');
     
     try {
-      // Спроба завантажити з Supabase
       if (supabaseConnected) {
         const savedProgress = await progressService.loadProgress(userEmail);
         
         if (savedProgress) {
           console.log('📦 Отримано прогрес з Supabase:', savedProgress);
           
-          // ✅ ОНОВЛЕНО: Мерджимо збережений прогрес з початковим (для нових тестів)
           const mergedProgress = {
             test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} }
           };
           
-          console.log('✅ Прогрес завантажено з Supabase для', userEmail, ':', mergedProgress);
+          console.log('✅ Прогрес завантажено з Supabase для', userEmail);
           setProgress(mergedProgress);
         } else {
-          console.log('ℹ️ Прогрес не знайдено в Supabase для', userEmail, ', використовуємо початковий');
-          // ✅ ОНОВЛЕНО: Встановлюємо початковий прогрес
+          console.log('ℹ️ Прогрес не знайдено в Supabase для', userEmail);
           const initialProgress = {
             test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
           };
-          console.log('📝 Встановлюємо початковий прогрес:', initialProgress);
           setProgress(initialProgress);
         }
       } else {
         // Fallback на localStorage
-        console.log('⚠️ Використовуємо localStorage як fallback');
         const localProgress = localStorage.getItem(`progress:${userEmail}`);
         if (localProgress) {
           const savedProgress = JSON.parse(localProgress);
-          // ✅ ОНОВЛЕНО
           const mergedProgress = {
             test1: savedProgress.test1 || { completed: 0, total: test1.questions.length, correctAnswers: {} },
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} }
           };
-          console.log('✅ Прогрес завантажено з localStorage:', mergedProgress);
           setProgress(mergedProgress);
-        } else {
-          // ✅ ОНОВЛЕНО: Початковий прогрес
-          const initialProgress = {
-            test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
-            test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
-            test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
-            test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
-          };
-          console.log('📝 Встановлюємо початковий прогрес (localStorage):', initialProgress);
-          setProgress(initialProgress);
         }
       }
     } catch (error) {
@@ -158,7 +186,6 @@ export default function App() {
   const saveUserProgress = async (userEmail, progressData) => {
     try {
       if (supabaseConnected) {
-        // Зберігаємо в Supabase
         const success = await progressService.saveProgress(userEmail, progressData);
         if (success) {
           console.log('✅ Прогрес збережено в Supabase для:', userEmail);
@@ -167,13 +194,11 @@ export default function App() {
           localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
         }
       } else {
-        // Fallback на localStorage
         localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
         console.log('✅ Прогрес збережено в localStorage для:', userEmail);
       }
     } catch (error) {
       console.error('❌ Помилка збереження прогресу:', error);
-      // Аварійне збереження в localStorage
       try {
         localStorage.setItem(`progress:${userEmail}`, JSON.stringify(progressData));
         console.log('✅ Аварійне збереження в localStorage');
@@ -195,14 +220,12 @@ export default function App() {
           console.log('✅ Персональні дозволи завантажено:', permissions);
           setUserAllowedCategories(permissions);
         } else {
-          // Використовуємо стандартні дозволи з users.js
           const user = users.find(u => u.email === userEmail);
           const defaultPermissions = user?.allowedCategories || ['nmt', 'grade9'];
           console.log('ℹ️ Використовуємо стандартні дозволи:', defaultPermissions);
           setUserAllowedCategories(defaultPermissions);
         }
       } else {
-        // Fallback на стандартні дозволи
         const user = users.find(u => u.email === userEmail);
         const defaultPermissions = user?.allowedCategories || ['nmt', 'grade9'];
         console.log('⚠️ Offline: використовуємо стандартні дозволи:', defaultPermissions);
@@ -210,7 +233,6 @@ export default function App() {
       }
     } catch (error) {
       console.error('❌ Помилка завантаження дозволів:', error);
-      // Fallback на стандартні
       const user = users.find(u => u.email === userEmail);
       setUserAllowedCategories(user?.allowedCategories || ['nmt', 'grade9']);
     }
@@ -222,7 +244,6 @@ export default function App() {
       console.log('🔍 Перевірка сесії при завантаженні...');
       
       try {
-        // Перевіряємо localStorage для сесії
         const sessionData = localStorage.getItem('current-session');
         
         if (sessionData) {
@@ -237,6 +258,7 @@ export default function App() {
             setIsLoggedIn(true);
             await loadUserProgress(user.email);
             await loadUserPermissions(user.email);
+            await loadLessons();
           } else {
             console.log('❌ Користувача не знайдено в базі');
           }
@@ -259,7 +281,7 @@ export default function App() {
     if (isLoggedIn && currentUser) {
       const interval = setInterval(() => {
         saveUserProgress(currentUser.email, progress);
-      }, 30000); // 30 секунд
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser, progress]);
@@ -283,13 +305,12 @@ export default function App() {
     if (user) {
       console.log('✅ Логін успішний для:', user.name);
       
-      // ✅ ОНОВЛЕНО: Спочатку скидаємо весь state до початкового
       setProgress({
         test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
         test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
         test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
         test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-        test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+        test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
       });
       setAnswers({});
       setCheckedQuestions({});
@@ -297,11 +318,9 @@ export default function App() {
       setSelectedTest(null);
       setCurrentQuestion(0);
       
-      // Потім встановлюємо користувача
       setCurrentUser(user);
       setIsLoggedIn(true);
       
-      // Зберігаємо сесію в localStorage
       try {
         localStorage.setItem('current-session', JSON.stringify({ email: user.email }));
         console.log('✅ Сесія збережена для:', user.email);
@@ -309,11 +328,9 @@ export default function App() {
         console.error('❌ Помилка збереження сесії:', error);
       }
       
-      // Завантажуємо прогрес ЦЬОГО користувача
       await loadUserProgress(user.email);
-      
-      // Завантажуємо персональні дозволи
       await loadUserPermissions(user.email);
+      await loadLessons();
     } else {
       console.log('❌ Невірний логін або пароль');
       alert('Невірний логін або пароль!\n\nЗверніться до адміністратора для отримання доступу.');
@@ -323,12 +340,10 @@ export default function App() {
   const handleLogout = async () => {
     console.log('🚪 Вихід з акаунту:', currentUser?.email);
     
-    // Зберігаємо прогрес перед виходом
     if (currentUser) {
       await saveUserProgress(currentUser.email, progress);
     }
     
-    // Повне очищення state
     setIsLoggedIn(false);
     setCurrentUser(null);
     setEmail('');
@@ -338,17 +353,16 @@ export default function App() {
     setCurrentQuestion(0);
     setAnswers({});
     setCheckedQuestions({});
+    setLessons([]);
     
-    // ✅ ОНОВЛЕНО: Скидаємо прогрес до початкового
     setProgress({
       test1: { completed: 0, total: test1.questions.length, correctAnswers: {} },
       test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
       test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
       test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-      test5: { completed: 0, total: test5.questions.length, correctAnswers: {} } // ✅ ДОДАНО
+      test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
     });
     
-    // Видаляємо сесію
     try {
       localStorage.removeItem('current-session');
       console.log('✅ Сесія видалена');
@@ -386,10 +400,8 @@ export default function App() {
   const handleToggleCategory = (categoryId) => {
     setEnabledCategories(prev => {
       if (prev.includes(categoryId)) {
-        // Вимикаємо категорію
         return prev.filter(id => id !== categoryId);
       } else {
-        // Увімкнемо категорію
         return [...prev, categoryId];
       }
     });
@@ -416,9 +428,50 @@ export default function App() {
     
     setProgress(newProgress);
     
-    // Автоматично зберігаємо прогрес
     if (currentUser) {
       await saveUserProgress(currentUser.email, newProgress);
+    }
+  };
+
+  // ===== КАЛЕНДАР HANDLERS =====
+  const handleAddLesson = async (lesson) => {
+    console.log('➕ Додавання уроку:', lesson);
+    
+    // Додаємо локально
+    setLessons(prev => [...prev, lesson]);
+    
+    // Зберігаємо в БД
+    if (supabaseConnected) {
+      const success = await calendarService.addLesson(lesson);
+      if (!success) {
+        console.error('❌ Не вдалося зберегти урок в БД');
+        // Можна показати повідомлення користувачу
+      }
+    } else {
+      // Fallback на localStorage
+      const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+      localLessons.push(lesson);
+      localStorage.setItem('calendar-lessons', JSON.stringify(localLessons));
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId) => {
+    console.log('🗑️ Видалення уроку:', lessonId);
+    
+    // Видаляємо локально
+    setLessons(prev => prev.filter(l => l.id !== lessonId));
+    
+    // Видаляємо з БД
+    if (supabaseConnected) {
+      const success = await calendarService.deleteLesson(lessonId);
+      if (!success) {
+        console.error('❌ Не вдалося видалити урок з БД');
+      }
+    } else {
+      // Fallback на localStorage
+      const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+      const filtered = localLessons.filter(l => l.id !== lessonId);
+      localStorage.setItem('calendar-lessons', JSON.stringify(filtered));
     }
   };
 
@@ -465,7 +518,6 @@ export default function App() {
         currentUser={currentUser}
       />
 
-      {/* Індикатор статусу підключення */}
       {!supabaseConnected && (
         <div className="max-w-5xl mx-auto px-6 mt-4">
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center text-sm">
@@ -475,7 +527,7 @@ export default function App() {
       )}
 
       <main className="max-w-5xl mx-auto px-6 mt-12">
-        {/* АДМІН-ПАНЕЛЬ (тільки для адмінів) */}
+        {/* АДМІН-ПАНЕЛЬ */}
         {activeTab === 'admin' && currentUser?.role === 'admin' && (
           <AdminPanel
             theme={theme}
@@ -486,14 +538,22 @@ export default function App() {
           />
         )}
 
-        {/* Вибір категорії (фільтруємо за глобальними та персональними дозволами) */}
+        {/* КАЛЕНДАР */}
+        {activeTab === 'calendar' && (
+          <Calendar
+            theme={theme}
+            currentUser={currentUser}
+            lessons={lessons}
+            onAddLesson={handleAddLesson}
+            onDeleteLesson={handleDeleteLesson}
+          />
+        )}
+
+        {/* Вибір категорії */}
         {activeTab === 'tests' && !selectedCategory && !selectedTest && (
           <CategorySelector
             categories={testCategories.filter(cat => {
-              // Адмін бачить все
               if (currentUser?.role === 'admin') return true;
-              
-              // Категорія має бути і глобально увімкнена, і дозволена особисто
               return enabledCategories.includes(cat.id) && userAllowedCategories.includes(cat.id);
             })}
             onSelectCategory={handleSelectCategory}
