@@ -1,10 +1,10 @@
-// components/Header.jsx
+// components/Header.jsx - З вкладкою Календар
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 
 export default function Header({ activeTab, setActiveTab, isDarkMode, setIsDarkMode, onLogout, theme, currentUser }) {
   // Визначаємо які вкладки показувати
-  const tabs = ['tests', 'profile', 'about'];
+  const tabs = ['tests', 'calendar', 'profile', 'about'];
   
   // Якщо користувач - адмін, додаємо вкладку "Адмін"
   if (currentUser?.role === 'admin') {
@@ -13,6 +13,7 @@ export default function Header({ activeTab, setActiveTab, isDarkMode, setIsDarkM
 
   const tabLabels = {
     tests: 'Тести',
+    calendar: '📅 Календар',
     profile: 'Профіль',
     about: 'Про сайт',
     admin: '👑 Адмін'
@@ -30,6 +31,8 @@ export default function Header({ activeTab, setActiveTab, isDarkMode, setIsDarkM
                 activeTab === tab
                   ? tab === 'admin'
                     ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                    : tab === 'calendar'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                     : 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
                   : 'opacity-40 hover:opacity-100'
               }`}
