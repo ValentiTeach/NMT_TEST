@@ -100,7 +100,19 @@ export default function App() {
 
   // Завантаження уроків
   const loadLessons = async () => {
-    if (!supabaseConnected) return;
+    if (!supabaseConnected) {
+      console.log('⚠️ Supabase недоступний, завантажуємо з localStorage');
+      try {
+        const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+        setLessons(localLessons);
+        console.log('✅ Завантажено уроків з localStorage:', localLessons.length);
+        return;
+      } catch (error) {
+        console.error('❌ Помилка завантаження з localStorage:', error);
+        setLessons([]);
+        return;
+      }
+    }
     
     setIsLoadingLessons(true);
     try {
@@ -119,9 +131,25 @@ export default function App() {
       }));
       
       setLessons(formattedLessons);
-      console.log('✅ Завантажено уроків:', formattedLessons.length);
+      console.log('✅ Завантажено уроків з Supabase:', formattedLessons.length);
+      
+      // Синхронізуємо з localStorage як backup
+      try {
+        localStorage.setItem('calendar-lessons', JSON.stringify(formattedLessons));
+      } catch (error) {
+        console.warn('⚠️ Не вдалося синхронізувати з localStorage:', error);
+      }
     } catch (error) {
       console.error('❌ Помилка завантаження уроків:', error);
+      // Спробуємо завантажити з localStorage як fallback
+      try {
+        const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+        setLessons(localLessons);
+        console.log('ℹ️ Завантажено з localStorage fallback:', localLessons.length);
+      } catch (fallbackError) {
+        console.error('❌ Fallback також не вдався:', fallbackError);
+        setLessons([]);
+      }
     } finally {
       setIsLoadingLessons(false);
     }
@@ -437,7 +465,7 @@ export default function App() {
   const handleAddLesson = async (lesson) => {
     console.log('➕ Додавання уроку:', lesson);
     
-    // Додаємо локально
+    // Додаємо локально (оптимістичне оновлення)
     setLessons(prev => [...prev, lesson]);
     
     // Зберігаємо в БД
@@ -445,33 +473,67 @@ export default function App() {
       const success = await calendarService.addLesson(lesson);
       if (!success) {
         console.error('❌ Не вдалося зберегти урок в БД');
-        // Можна показати повідомлення користувачу
+        // Відкат змін
+        setLessons(prev => prev.filter(l => l.id !== lesson.id));
+        alert('❌ Помилка збереження уроку. Спробуйте ще раз.');
+      } else {
+        console.log('✅ Урок успішно збережено в БД');
       }
     } else {
       // Fallback на localStorage
-      const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
-      localLessons.push(lesson);
-      localStorage.setItem('calendar-lessons', JSON.stringify(localLessons));
+      try {
+        const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+        localLessons.push(lesson);
+        localStorage.setItem('calendar-lessons', JSON.stringify(localLessons));
+        console.log('✅ Урок збережено в localStorage');
+      } catch (error) {
+        console.error('❌ Помилка збереження в localStorage:', error);
+        setLessons(prev => prev.filter(l => l.id !== lesson.id));
+        alert('❌ Помилка збереження уроку.');
+      }
     }
   };
 
   const handleDeleteLesson = async (lessonId) => {
     console.log('🗑️ Видалення уроку:', lessonId);
     
-    // Видаляємо локально
+    // Підтвердження видалення
+    if (!window.confirm('Ви впевнені що хочете видалити цей урок?')) {
+      return;
+    }
+    
+    // Зберігаємо копію на випадок відкату
+    const lessonsCopy = [...lessons];
+    
+    // Видаляємо локально (оптимістичне оновлення)
     setLessons(prev => prev.filter(l => l.id !== lessonId));
+    console.log('👍 Урок видалено локально');
     
     // Видаляємо з БД
     if (supabaseConnected) {
       const success = await calendarService.deleteLesson(lessonId);
       if (!success) {
         console.error('❌ Не вдалося видалити урок з БД');
+        // Відкат змін
+        setLessons(lessonsCopy);
+        alert('❌ Помилка видалення уроку з бази даних. Спробуйте ще раз.');
+      } else {
+        console.log('✅ Урок успішно видалено з БД');
+        // Оновлюємо список з БД для синхронізації
+        await loadLessons();
       }
     } else {
       // Fallback на localStorage
-      const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
-      const filtered = localLessons.filter(l => l.id !== lessonId);
-      localStorage.setItem('calendar-lessons', JSON.stringify(filtered));
+      try {
+        const localLessons = JSON.parse(localStorage.getItem('calendar-lessons') || '[]');
+        const filtered = localLessons.filter(l => l.id !== lessonId);
+        localStorage.setItem('calendar-lessons', JSON.stringify(filtered));
+        console.log('✅ Урок видалено з localStorage');
+      } catch (error) {
+        console.error('❌ Помилка видалення з localStorage:', error);
+        setLessons(lessonsCopy);
+        alert('❌ Помилка видалення уроку.');
+      }
     }
   };
 
