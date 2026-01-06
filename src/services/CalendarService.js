@@ -110,16 +110,57 @@ class CalendarService {
    */
   async deleteLesson(lessonId) {
     try {
-      console.log('🗑️ Видалення уроку:', lessonId);
+      console.log('🗑️ Видалення уроку з БД:', lessonId);
       
-      const { error } = await supabase
+      // Спочатку перевіряємо чи існує урок
+      const { data: existingLesson, error: checkError } = await supabase
         .from('calendar_lessons')
-        .delete()
+        .select('id')
+        .eq('id', lessonId)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('❌ Помилка перевірки існування уроку:', checkError);
+        throw checkError;
+      }
+      
+      if (!existingLesson) {
+        console.warn('⚠️ Урок не знайдено в БД:', lessonId);
+        return true; // Вважаємо успішним якщо його вже немає
+      }
+      
+      // Видаляємо урок
+      const { error, count } = await supabase
+        .from('calendar_lessons')
+        .delete({ count: 'exact' })
         .eq('id', lessonId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Помилка при видаленні уроку:', error);
+        console.error('Деталі помилки:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
       
-      console.log('✅ Урок видалено');
+      console.log('✅ Урок видалено з БД. Кількість видалених записів:', count);
+      
+      // Перевіряємо що урок дійсно видалено
+      const { data: checkDeleted } = await supabase
+        .from('calendar_lessons')
+        .select('id')
+        .eq('id', lessonId)
+        .maybeSingle();
+      
+      if (checkDeleted) {
+        console.error('❌ КРИТИЧНА ПОМИЛКА: Урок все ще є в БД після видалення!');
+        return false;
+      }
+      
+      console.log('✅ Підтверджено: урок видалено з БД');
       return true;
       
     } catch (error) {
