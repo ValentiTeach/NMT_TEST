@@ -22,6 +22,26 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 
+  // ===== РОБОТА З ДАТАМИ БЕЗ UTC КОНВЕРТАЦІЇ =====
+  // Проблема: JavaScript Date.toISOString() конвертує в UTC, що призводить до зсуву дати
+  // Рішення: Використовуємо локальні дати напряму без конвертації
+  
+  // Допоміжна функція для форматування дати в локальному часовому поясі
+  // Формат: YYYY-MM-DD (без конвертації в UTC)
+  const formatDateToLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Допоміжна функція для парсингу дати з рядка без UTC конвертації
+  // Парсить YYYY-MM-DD і створює локальну дату
+  const parseDateFromString = (dateStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Отримуємо дні місяця
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -53,7 +73,7 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
   const getLessonsForDate = (date) => {
     if (!date || !lessons) return [];
     
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateToLocal(date);
     return lessons.filter(lesson => lesson.date === dateStr);
   };
 
@@ -74,9 +94,12 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
   const handleDateClick = (date) => {
     if (!date) return;
     setSelectedDate(date);
+    
+    const localDateStr = formatDateToLocal(date);
+    
     setNewLesson({
       ...newLesson,
-      date: date.toISOString().split('T')[0]
+      date: localDateStr
     });
     setShowAddDialog(true);
   };
@@ -109,7 +132,11 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
   };
 
   const days = getDaysInMonth(currentDate);
-  const today = new Date().toDateString();
+  
+  // Отримуємо сьогоднішню дату в локальному форматі (без часу)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = formatDateToLocal(today);
 
   // Фільтр учнів (без адміна)
   const students = users.filter(u => u.role === 'student');
@@ -173,7 +200,7 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
         {/* Дні місяця */}
         <div className="grid grid-cols-7 gap-2">
           {days.map((date, index) => {
-            const isToday = date && date.toDateString() === today;
+            const isToday = date && formatDateToLocal(date) === todayStr;
             const dayLessons = date ? getLessonsForDate(date) : [];
             const hasLessons = dayLessons.length > 0;
 
@@ -228,7 +255,8 @@ export default function Calendar({ theme, currentUser, lessons, onAddLesson, onD
             📚 Уроки на {selectedDate.toLocaleDateString('uk-UA', { 
               day: 'numeric', 
               month: 'long',
-              year: 'numeric'
+              year: 'numeric',
+              timeZone: 'Europe/Kiev'
             })}
           </h3>
           
