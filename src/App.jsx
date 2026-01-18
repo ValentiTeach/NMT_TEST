@@ -15,12 +15,13 @@ import { test2 } from './data/test2';
 import { test3 } from './data/test3';
 import { test4 } from './data/test4';
 import { test5 } from './data/test5';
+import { test6 } from './data/test6';
 import progressService from './services/ProgressService';
 import userPermissionsService from './services/UserPermissionsService';
 import calendarService from './services/CalendarService';
 import { testConnection } from './config/supabase';
 
-const allTests = [test1, test2, test3, test4, test5];
+const allTests = [test1, test2, test3, test4, test5, test6];
 
 // Категорії тестів
 const testCategories = [
@@ -29,7 +30,7 @@ const testCategories = [
     title: 'Підготовка до НМТ',
     description: 'Повторення всіх тем для НМТ з Історії України',
     icon: '🎓',
-    tests: [test1, test2, test3, test5]
+    tests: [test1, test2, test3, test5, test6]
   },
   {
     id: 'grade9',
@@ -71,7 +72,8 @@ export default function App() {
     test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
     test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
     test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-    test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
+    test5: { completed: 0, total: test5.questions.length, correctAnswers: {} },
+    test6: { completed: 0, total: test6.questions.length, correctAnswers: {} }
   });
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -172,7 +174,8 @@ export default function App() {
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} }
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} },
+            test6: savedProgress.test6 || { completed: 0, total: test6.questions.length, correctAnswers: {} }
           };
           
           console.log('✅ Прогрес завантажено з Supabase для', userEmail);
@@ -184,7 +187,8 @@ export default function App() {
             test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
+            test5: { completed: 0, total: test5.questions.length, correctAnswers: {} },
+            test6: { completed: 0, total: test6.questions.length, correctAnswers: {} }
           };
           setProgress(initialProgress);
         }
@@ -198,7 +202,8 @@ export default function App() {
             test2: savedProgress.test2 || { completed: 0, total: test2.questions.length, correctAnswers: {} },
             test3: savedProgress.test3 || { completed: 0, total: test3.questions.length, correctAnswers: {} },
             test4: savedProgress.test4 || { completed: 0, total: test4.questions.length, correctAnswers: {} },
-            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} }
+            test5: savedProgress.test5 || { completed: 0, total: test5.questions.length, correctAnswers: {} },
+            test6: savedProgress.test6 || { completed: 0, total: test6.questions.length, correctAnswers: {} }
           };
           setProgress(mergedProgress);
         }
@@ -338,7 +343,8 @@ export default function App() {
         test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
         test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
         test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-        test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
+        test5: { completed: 0, total: test5.questions.length, correctAnswers: {} },
+        test6: { completed: 0, total: test6.questions.length, correctAnswers: {} }
       });
       setAnswers({});
       setCheckedQuestions({});
@@ -388,7 +394,8 @@ export default function App() {
       test2: { completed: 0, total: test2.questions.length, correctAnswers: {} },
       test3: { completed: 0, total: test3.questions.length, correctAnswers: {} },
       test4: { completed: 0, total: test4.questions.length, correctAnswers: {} },
-      test5: { completed: 0, total: test5.questions.length, correctAnswers: {} }
+      test5: { completed: 0, total: test5.questions.length, correctAnswers: {} },
+      test6: { completed: 0, total: test6.questions.length, correctAnswers: {} }
     });
     
     try {
