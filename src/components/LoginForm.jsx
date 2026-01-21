@@ -1,6 +1,6 @@
 // components/LoginForm.jsx
 import React from 'react';
-import MainLogo from '../../images/MainLogo.png'; // Імпортуємо лого
+import MainLogo from 'NMT_TEST/images/MainLogo.png'; // Імпортуємо лого
 
 export default function LoginForm({ email, setEmail, password, setPassword, onLogin, theme, isDarkMode }) {
   return (
