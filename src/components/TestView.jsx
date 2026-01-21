@@ -44,7 +44,7 @@ export default function TestView({
     onUpdateProgress(currentTest.id, currentQuestion, isCorrect);
   };
 
-  const handleNext = () => {
+const handleNext = () => {
   if (currentQuestion < tests.length - 1) {
     setCurrentQuestion(currentQuestion + 1);
   } else {
@@ -97,11 +97,6 @@ export default function TestView({
   }
 };
       
-      // Повертаємось до вибору тестів
-      onBackToTests();
-    }
-  };
-
   return (
     <div className="animate-fadeIn">
       {/* Заголовок з кнопкою назад */}
