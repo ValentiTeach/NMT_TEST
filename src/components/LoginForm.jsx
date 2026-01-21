@@ -1,6 +1,6 @@
 // components/LoginForm.jsx
 import React from 'react';
-import MainLogo from '../images/MainLogo.png';
+import MainLogo from '../images/MainLogo1.png';
 
 export default function LoginForm({ email, setEmail, password, setPassword, onLogin, theme, isDarkMode }) {
   return (
