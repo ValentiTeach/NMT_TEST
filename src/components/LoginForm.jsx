@@ -1,4 +1,4 @@
-// components/LoginForm.jsx - З кастомним логотипом
+// components/LoginForm.jsx - З логотипом MainLogo.png
 import React from 'react';
 
 export default function LoginForm({ email, setEmail, password, setPassword, onLogin, theme, isDarkMode }) {
@@ -20,23 +20,30 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
 
       {/* Центральна форма */}
       <div className="relative z-10 w-full max-w-md">
-        {/* КАСТОМНИЙ ЛОГОТИП */}
+        {/* ЛОГОТИП */}
         <div className="text-center mb-8 animate-fade-in-down">
-          <div className="mb-4 flex justify-center">
-            {/* Твоя іконка MainLogo */}
-            <img 
-              src="/images/MainLogo.png"
-              alt="НМТ Логотип" 
-              className="w-32 h-32 object-contain filter drop-shadow-2xl animate-glow"
-              onError={(e) => {
-                // Fallback на емодзі якщо зображення не завантажилось
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'block';
-              }}
-            />
-            {/* Fallback емодзі (якщо іконка не завантажиться) */}
-            <div className="text-8xl hidden">⛵</div>
+          <div className="mb-6 flex justify-center">
+            <div className="relative">
+              {/* Світіння навколо логотипу */}
+              <div className="absolute inset-0 bg-teal-500/20 blur-3xl rounded-full animate-pulse"></div>
+              
+              {/* Сам логотип */}
+              <img 
+                src="/images/MainLogo.png"
+                alt="НМТ Експрес" 
+                className="relative w-40 h-40 object-contain drop-shadow-2xl animate-glow transition-transform hover:scale-110 duration-300"
+                onError={(e) => {
+                  // Fallback якщо лого не завантажилось
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'block';
+                }}
+              />
+              {/* Fallback емодзі */}
+              <div className="text-8xl hidden">⛵</div>
+            </div>
           </div>
+          
+          {/* Декоративна лінія */}
           <div className="h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-teal-500 to-transparent animate-expand"></div>
         </div>
 
@@ -149,8 +156,8 @@ export default function LoginForm({ email, setEmail, password, setPassword, onLo
           to { transform: scaleX(1); }
         }
         @keyframes glow {
-          0%, 100% { filter: drop-shadow(0 0 20px rgba(20, 184, 166, 0.3)); }
-          50% { filter: drop-shadow(0 0 30px rgba(20, 184, 166, 0.5)); }
+          0%, 100% { filter: drop-shadow(0 0 30px rgba(20, 184, 166, 0.4)); }
+          50% { filter: drop-shadow(0 0 50px rgba(20, 184, 166, 0.6)); }
         }
         @keyframes line-grow {
           from { transform: scaleY(0); opacity: 0; }
