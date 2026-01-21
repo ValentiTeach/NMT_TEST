@@ -442,23 +442,16 @@ export default function App() {
     });
   };
 
-  const handleUpdateProgress = async (testId, questionIndex, isCorrect) => {
-    const newProgress = { ...progress };
-    const testProgress = newProgress[testId];
-    const newCorrectAnswers = { ...testProgress.correctAnswers };
-    
-    if (isCorrect) {
-      newCorrectAnswers[questionIndex] = true;
-    } else {
-      delete newCorrectAnswers[questionIndex];
-    }
-    
-    const completed = Object.keys(newCorrectAnswers).length;
-    
+  const handleUpdateProgress = async (testId, questionIndex, isCorrect, attempt = null) => {
+  const newProgress = { ...progress };
+  const testProgress = newProgress[testId];
+  
+  // Якщо це спроба після завершення тесту
+  if (attempt) {
     newProgress[testId] = {
       ...testProgress,
-      completed,
-      correctAnswers: newCorrectAnswers
+      lastAttempt: attempt,
+      attempts: [...(testProgress.attempts || []), attempt]
     };
     
     setProgress(newProgress);
@@ -466,7 +459,32 @@ export default function App() {
     if (currentUser) {
       await saveUserProgress(currentUser.email, newProgress);
     }
+    return;
+  }
+  
+  // Звичайне оновлення для одного питання
+  const newCorrectAnswers = { ...testProgress.correctAnswers };
+  
+  if (isCorrect) {
+    newCorrectAnswers[questionIndex] = true;
+  } else {
+    delete newCorrectAnswers[questionIndex];
+  }
+  
+  const completed = Object.keys(newCorrectAnswers).length;
+  
+  newProgress[testId] = {
+    ...testProgress,
+    completed,
+    correctAnswers: newCorrectAnswers
   };
+  
+  setProgress(newProgress);
+  
+  if (currentUser) {
+    await saveUserProgress(currentUser.email, newProgress);
+  }
+};
 
   // ===== КАЛЕНДАР HANDLERS =====
   const handleAddLesson = async (lesson) => {
