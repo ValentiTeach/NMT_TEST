@@ -45,31 +45,57 @@ export default function TestView({
   };
 
   const handleNext = () => {
-    if (currentQuestion < tests.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      // Підрахунок результатів
-      let correctCount = 0;
-      tests.forEach((question, i) => {
-        if (checkedQuestions[i]) {
-          const userAnswer = answers[i];
-          let isCorrect = false;
-          
-          if (question.type === 'single') {
-            isCorrect = userAnswer?.[0] === question.correct;
-          } else if (question.type === 'matching' || question.type === 'sequence') {
-            const correctAnswers = question.correctMatching || question.correctSequence;
-            isCorrect = Object.keys(correctAnswers).every(
-              key => userAnswer?.[key] === correctAnswers[key]
-            );
-          }
-          
-          if (isCorrect) correctCount++;
-        }
-      });
+  if (currentQuestion < tests.length - 1) {
+    setCurrentQuestion(currentQuestion + 1);
+  } else {
+    // Підрахунок результатів та збереження спроби
+    let correctCount = 0;
+    const results = tests.map((question, i) => {
+      const wasAnswered = checkedQuestions[i];
+      const userAnswer = answers[i];
+      let isCorrect = false;
       
-      const percentage = Math.round((correctCount / tests.length) * 100);
-      alert(`Тест завершено!\n\nПравильних відповідей: ${correctCount} з ${tests.length}\nРезультат: ${percentage}%`);
+      if (wasAnswered && userAnswer) {
+        if (question.type === 'single') {
+          isCorrect = userAnswer?.[0] === question.correct;
+        } else if (question.type === 'matching' || question.type === 'sequence') {
+          const correctAnswers = question.correctMatching || question.correctSequence;
+          isCorrect = Object.keys(correctAnswers).every(
+            key => userAnswer?.[key] === correctAnswers[key]
+          );
+        }
+        
+        if (isCorrect) correctCount++;
+      }
+      
+      return {
+        questionIndex: i,
+        wasAnswered,
+        isCorrect,
+        userAnswer
+      };
+    });
+    
+    const percentage = Math.round((correctCount / tests.length) * 100);
+    
+    // Зберігаємо детальну спробу
+    const attempt = {
+      date: new Date().toISOString(),
+      correctCount,
+      totalQuestions: tests.length,
+      percentage,
+      results
+    };
+    
+    // Оновлюємо прогрес з lastAttempt
+    onUpdateProgress(currentTest.id, -1, false, attempt);
+    
+    alert(`Тест завершено!\n\nПравильних відповідей: ${correctCount} з ${tests.length}\nРезультат: ${percentage}%`);
+    
+    // Повертаємось до вибору тестів
+    onBackToTests();
+  }
+};
       
       // Повертаємось до вибору тестів
       onBackToTests();
